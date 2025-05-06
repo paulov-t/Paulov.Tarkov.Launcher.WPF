@@ -1,0 +1,23 @@
+{
+  // "None"/"Test" - create .cs of remappings /"Remap" - do the remap to the Assembly the Automatic System of Remapping via Code
+  "AutomaticRemapping": "None",
+  // Enable/Disable the Defined Mapping list of Remapping - The defined list runs after the Automatic Remap
+  "EnableDefinedRemapping": "Remap",
+  "DefinedRemapping": [
+    {
+      "RenameClassNameTo": "ABSGNetworkManager",
+      "OnlyRemapFirstFoundType": true,
+      "HasMethods": [ "AddMessageListener", "RemoveMessageListener", "method_0", "Configure", "OnConnect" ],
+      "IsAbstract": true,
+      "MustBeGClass": true
+    },
+    {
+      "RenameClassNameTo": "BSGNetworkManager",
+      "OnlyRemapFirstFoundType": true,
+      "HasMethods": [ "Connect", "Shutdown", "OnConnect", "OnData", "OnDisconnect" ],
+      "IsClass": true,
+      "MustBeGClass": true
+    }
+  ],
+  "AutoRemapDescriptors": true
+}

@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+	  
+	  <!-- Nuget packaging -->
+	  <!-- Do NOT package on Build, only package on Pack -->
+	  <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+	  <!-- Allow to be packaged on Pack -->
+	  <IsPackable>true</IsPackable>
+	  <PackageVersion>$([System.DateTime]::Now.ToString("yyyy.MM.dd"))</PackageVersion>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+
+	  <PackageId>PaulovTarkovAssemblyDeobusfactor</PackageId>
+	  <Title>Paulov Tarkov Assembly Deobusfactor</Title>
+	  <Authors>Paulov</Authors>
+	  <Company>Paulov</Company>
+	  <Copyright>Paulov 2023-2025</Copyright>
+	  <Description>This is a package that was initially written for Stay in Tarkov that Deobfuscates &amp; Remaps any Tarkov Assembly into "friendly" names</Description>
+	  <PackageTags>fmt; frostbite modding tool;</PackageTags>
+	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	  
+  </PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\"/>
+	</ItemGroup>
+
+	<ItemGroup>
+    <None Remove="DeObfus\mappings\ExampleRemapperConfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="DeObfus\de4dot\AssemblyData.dll" />
+    <EmbeddedResource Include="DeObfus\de4dot\de4dot.blocks.dll" />
+    <EmbeddedResource Include="DeObfus\de4dot\de4dot.code.dll" />
+    <EmbeddedResource Include="DeObfus\de4dot\de4dot.cui.dll" />
+    <EmbeddedResource Include="DeObfus\de4dot\de4dot.exe" />
+    <EmbeddedResource Include="DeObfus\de4dot\de4dot.mdecrypt.dll" />
+    <EmbeddedResource Include="DeObfus\de4dot\dnlib.dll" />
+    <Content Include="DeObfus\mappings\ExampleRemapperConfig.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.11.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Mono.Cecil.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Mono.Cecil.Rocks.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+	<Target Name="NugetPackAutoVersioning" AfterTargets="Build">
+		<Exec Command="dotnet pack -p:PackageVersion=1.0.6 --no-build --configuration $(Configuration) --output &quot;$(SolutionDir)nuget&quot;" />
+	</Target>
+
+</Project>

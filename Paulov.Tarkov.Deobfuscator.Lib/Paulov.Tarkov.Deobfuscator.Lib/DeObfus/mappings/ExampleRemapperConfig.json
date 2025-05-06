@@ -1,0 +1,18 @@
+{
+  // None/Remap/Test the Automatic System of Remapping via Code
+  "AutomaticRemapping": "None",
+  // None/Remap/Test the Defined Mapping list of Remapping - The defined list runs after the Automatic Remap
+  "EnableDefinedRemapping": "None",
+  "DefinedRemapping": [
+  ],
+  "DefinedTypesToForcePublic": [
+  ],
+  "TypesToForceAllPublicMethods": [
+  ],
+  "TypesToForceAllPublicFieldsAndProperties": [
+  ],
+  "AutoRemapTypeExcemptions": [
+
+  ],
+  "AutoRemapDescriptors": false
+}
