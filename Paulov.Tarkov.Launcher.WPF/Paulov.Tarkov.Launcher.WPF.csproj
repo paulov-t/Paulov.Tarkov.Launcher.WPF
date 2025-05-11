@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
-	  <ApplicationIcon>Stay-In-Tarkov-512.ico</ApplicationIcon>
+	  <ApplicationIcon>VIcon.ico</ApplicationIcon>
 	  <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 	  <SelfContained>true</SelfContained>
 	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -368,7 +368,6 @@
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 			</Content>
-    <Content Include="Stay-In-Tarkov-512.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -398,7 +397,7 @@
     <None Update="AddNewServerDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
     </None>
-    <None Update="DeObfus\mappings\Aki\AkiRemapperConfig.json">
+    <None Update="DeObfus\mappings\Spt\SptRemapperConfig.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="DeObfus\mappings\Paulov\PaulovNetworkRemapperConfig.json">

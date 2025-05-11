@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Tarkov.Deobfuscator
+﻿namespace Tarkov.Deobfuscator
 {
     public partial class AutoRemapperInfo
     {
@@ -31,6 +25,11 @@ namespace Tarkov.Deobfuscator
         /// Number of fields + properties within the type that are declared must match this number
         /// </summary>
         public int? ExactDeclaredFieldCount { get; set; }
+
+        /// <summary>
+        /// Number of properties within the type that are declared must match this number
+        /// </summary>
+        public int? ExactDeclaredPropertyCount { get; set; }
 
         public string[] HasMethodsVirtual { get; set; }
         public string[] HasMethodsStatic { get; set; }
