@@ -42,6 +42,8 @@
         public bool? RemoveAbstract { get; set; }
         public bool? ConvertInternalMethodsToPublic { get; set; }
         public bool? IsAbstract { get; set; }
+        public bool? IsSealed { get; set; }
+
 
         public override string ToString()
         {

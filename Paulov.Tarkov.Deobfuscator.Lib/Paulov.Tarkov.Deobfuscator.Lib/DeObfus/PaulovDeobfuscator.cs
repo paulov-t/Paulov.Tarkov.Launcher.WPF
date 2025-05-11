@@ -1595,66 +1595,32 @@ TypeDefinition[] allTypes)
             int countOfDefinedMappingSucceeded = 0;
             int countOfDefinedMappingFailed = 0;
 
+            var remappableTypes
+               = assembly
+               .MainModule
+               .GetTypes()
+               .Where(x => !TypesToNotRemap.Select(y => y.ToLower()).Any(y => x.Name.ToLower().IndexOf(y) != -1))
+               .Where(x => !x.Namespace.StartsWith("System"))
+               .Where(x => !x.Name.Contains("d__"))
+               .OrderBy(x => x.Name)
+               .ToList();
+
             foreach (var config in autoRemapperConfig.DefinedRemapping.Where(x => !string.IsNullOrEmpty(x.RenameClassNameTo)))
             {
 
                 try
                 {
-                    List<TypeDefinition> findTypes = DiscoverTypeByMapping(assembly, config);
+                    var foundTypes = DiscoverTypeByMapping(config, remappableTypes);
 
-                    if (findTypes.Any())
+                    if (foundTypes.Any())
                     {
                         var onlyRemapFirstFoundType = config.OnlyRemapFirstFoundType.HasValue && config.OnlyRemapFirstFoundType.Value;
                         // Only remap first found type.
-                        countOfDefinedMappingSucceeded = RemapType(autoRemapperConfig, countOfDefinedMappingSucceeded, config.RenameClassNameTo, findTypes.FirstOrDefault(), true);
-
-
-
-                        //if (findTypes.Count() > 1 && !onlyRemapFirstFoundType)
-                        //{
-                        //    findTypes = findTypes
-                        //        .OrderBy(x => !x.Name.StartsWith("GClass") && !x.Name.StartsWith("GInterface"))
-                        //        .ThenBy(x => x.Name.StartsWith("GInterface"))
-                        //        .ToList();
-
-                        //    var desiredName = config.RenameClassNameTo;
-                        //    var loopName = config.RenameClassNameTo.ToString();
-                        //    var numberOfChangedIndexes = 0;
-                        //    // Check to see if renamedClasses already has the desiredName, if it does, then use the next index
-                        //    if (renamedClasses.Any(x => x.Equals(loopName)))
-                        //    {
-                        //        while (renamedClasses.Any(x => x.Equals(loopName)))
-                        //        {
-                        //            numberOfChangedIndexes++;
-                        //            loopName = desiredName + numberOfChangedIndexes.ToString();
-                        //        }
-                        //    }
-                        //    desiredName = loopName.ToString();
-
-                        //    for (var index = 0; index < findTypes.Count(); index++)
-                        //    {
-                        //        var t = findTypes[index];
-                        //        var oldFullName = t.FullName;
-                        //        var oldClassName = t.Name;
-
-                        //        if (t.IsInterface && !desiredName.StartsWith("I"))
-                        //        {
-                        //            desiredName = desiredName.Insert(0, "I");
-                        //        }
-
-                        //        desiredName = desiredName + (!t.IsInterface && numberOfChangedIndexes > 0 ? numberOfChangedIndexes.ToString() : "");
-
-                        //        countOfDefinedMappingSucceeded = RemapType(autoRemapperConfig, countOfDefinedMappingSucceeded, desiredName, t, true);
-
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //}
+                        countOfDefinedMappingSucceeded = RemapType(autoRemapperConfig, countOfDefinedMappingSucceeded, config.RenameClassNameTo, foundTypes.FirstOrDefault(), true);
 
                         if (config.RemoveAbstract.HasValue && config.RemoveAbstract.Value)
                         {
-                            foreach (var type in findTypes)
+                            foreach (var type in foundTypes)
                             {
                                 if (type.IsAbstract)
                                 {
@@ -1746,26 +1712,19 @@ TypeDefinition[] allTypes)
             return countSuccess;
         }
 
-        private List<TypeDefinition> DiscoverTypeByMapping(AssemblyDefinition assembly, AutoRemapperInfo config)
+
+
+        private List<TypeDefinition> DiscoverTypeByMapping(AutoRemapperInfo config, in List<TypeDefinition> findTypes)
         {
 
 #if DEBUG
-            if (config.RenameClassNameTo == "FoodClass")
+            if (config.RenameClassNameTo == "EnergyControllerClass")
             {
 
             }
-#endif 
-            var findTypes
-                = assembly
-                .MainModule
-                .GetTypes()
-                .Where(x => !TypesToNotRemap.Select(y => y.ToLower()).Any(y => x.Name.ToLower().IndexOf(y) != -1))
-                .Where(x => !x.Namespace.StartsWith("System"))
-                .Where(x => !x.Name.Contains("d__"))
-                .OrderBy(x => x.Name)
-                .ToList();
+#endif
 
-            findTypes = findTypes.Where(
+            List<TypeDefinition> foundDefinition = findTypes.Where(
                x =>
                    (
                        !config.MustBeGClass.HasValue
@@ -1773,7 +1732,7 @@ TypeDefinition[] allTypes)
                    )
                ).ToList();
 
-            findTypes = findTypes.Where(
+            foundDefinition = foundDefinition.Where(
                x =>
                    (
                        string.IsNullOrEmpty(config.IsNestedInClass)
@@ -1785,7 +1744,7 @@ TypeDefinition[] allTypes)
 
 
             // Filter Types by Inherits Class
-            findTypes = findTypes.Where(
+            foundDefinition = foundDefinition.Where(
                 x =>
                     (
                         config.InheritsClass == null || config.InheritsClass.Length == 0
@@ -1794,7 +1753,7 @@ TypeDefinition[] allTypes)
                 ).ToList();
 
             // Filter Types by Class Name Matching
-            findTypes = findTypes.Where(
+            foundDefinition = foundDefinition.Where(
                 x =>
                     (
                         config.ClassName == null || config.ClassName.Length == 0 || (x.Name.Equals(config.ClassName))
@@ -1802,7 +1761,7 @@ TypeDefinition[] allTypes)
                 ).ToList();
 
             // Filter Types by Methods
-            findTypes = findTypes.Where(x
+            foundDefinition = foundDefinition.Where(x
                     =>
                         (config.HasMethods == null || config.HasMethods.Length == 0
                             || (x.Methods.Where(x => !x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethods.Contains(y)) >= config.HasMethods.Length))
@@ -1811,7 +1770,7 @@ TypeDefinition[] allTypes)
             // Filter Types by Virtual Methods
             if (config.HasMethodsVirtual != null && config.HasMethodsVirtual.Length > 0)
             {
-                findTypes = findTypes.Where(x
+                foundDefinition = foundDefinition.Where(x
                        =>
                          (x.Methods.Count(y => y.IsVirtual) > 0
                             && x.Methods.Where(y => y.IsVirtual).Count(y => config.HasMethodsVirtual.Contains(y.Name)) >= config.HasMethodsVirtual.Length
@@ -1819,7 +1778,7 @@ TypeDefinition[] allTypes)
                        ).ToList();
             }
             // Filter Types by Static Methods
-            findTypes = findTypes.Where(x
+            foundDefinition = foundDefinition.Where(x
                     =>
                         (config.HasMethodsStatic == null || config.HasMethodsStatic.Length == 0
                             || (x.Methods.Where(x => x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethodsStatic.Contains(y)) >= config.HasMethodsStatic.Length))
@@ -1827,7 +1786,7 @@ TypeDefinition[] allTypes)
                     ).ToList();
 
             // Filter Types by Events
-            findTypes = findTypes.Where(x
+            foundDefinition = foundDefinition.Where(x
                    =>
                        (config.HasEvents == null || config.HasEvents.Length == 0
                            || (x.Events.Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasEvents.Contains(y)) >= config.HasEvents.Length))
@@ -1835,7 +1794,7 @@ TypeDefinition[] allTypes)
                    ).ToList();
 
             // Filter Types by Field/Properties
-            findTypes = findTypes.Where(
+            foundDefinition = foundDefinition.Where(
                 x =>
                         (
                             // fields
@@ -1855,7 +1814,7 @@ TypeDefinition[] allTypes)
                         )).ToList();
 
             // Filter Types by Class
-            findTypes = findTypes.Where(
+            foundDefinition = foundDefinition.Where(
                 x =>
                     (
                         (!config.IsClass.HasValue || (config.IsClass.HasValue && config.IsClass.Value && ((x.IsClass || x.IsAbstract) && !x.IsEnum && !x.IsInterface)))
@@ -1863,14 +1822,14 @@ TypeDefinition[] allTypes)
                 ).ToList();
 
             // Filter Types by Interface
-            findTypes = findTypes.Where(
+            foundDefinition = foundDefinition.Where(
                x =>
                    (
                         (!config.IsInterface.HasValue || (config.IsInterface.HasValue && config.IsInterface.Value && (x.IsInterface && !x.IsEnum && !x.IsClass)))
                    )
                ).ToList();
 
-            findTypes = findTypes.Where(
+            foundDefinition = foundDefinition.Where(
            x =>
                (
                     (!config.IsStruct.HasValue || (config.IsStruct.HasValue && config.IsStruct.Value && (x.IsValueType)))
@@ -1878,22 +1837,25 @@ TypeDefinition[] allTypes)
            ).ToList();
 
             // Filter types by Exact DeclaredMethodCount
-            findTypes = findTypes.Where(x => !config.ExactDeclaredMethodCount.HasValue || (x.GetMethods().Count(y => y.DeclaringType == x) == config.ExactDeclaredMethodCount.Value)).ToList();
+            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredMethodCount.HasValue || (x.GetMethods().Count(y => y.DeclaringType == x) == config.ExactDeclaredMethodCount.Value)).ToList();
 
             // Filter types by Exact DeclaredFieldCount
-            findTypes = findTypes.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) + x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
+            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) + x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
 
             // Filter types by Exact DeclaredPropertyCount
-            findTypes = findTypes.Where(x => !config.ExactDeclaredPropertyCount.HasValue || (x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredPropertyCount.Value)).ToList();
+            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredPropertyCount.HasValue || (x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredPropertyCount.Value)).ToList();
+
+            // Filter types by IsSealed
+            foundDefinition = foundDefinition.Where(x => !config.IsSealed.HasValue || (x.IsSealed == config.IsSealed)).ToList();
 
             // Filter Types by Constructor
             if (config.HasConstructorArgs != null)
-                findTypes = findTypes.Where(t => t.Methods.Any(x => x.IsConstructor
+                foundDefinition = foundDefinition.Where(t => t.Methods.Any(x => x.IsConstructor
                     && x.Parameters.Count == config.HasConstructorArgs.Length
                     && config.HasConstructorArgs.Length == config.HasConstructorArgs.Sum(arg => x.Parameters.Select(x => x.Name).Contains(arg) ? 1 : 0)
                     )).ToList();
 
-            return findTypes;
+            return foundDefinition;
         }
 
         public TypeDefinition CreateStubOfOldType(TypeDefinition oldType)
