@@ -1883,6 +1883,8 @@ TypeDefinition[] allTypes)
             // Filter types by Exact DeclaredFieldCount
             findTypes = findTypes.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) + x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
 
+            // Filter types by Exact DeclaredPropertyCount
+            findTypes = findTypes.Where(x => !config.ExactDeclaredPropertyCount.HasValue || (x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredPropertyCount.Value)).ToList();
 
             // Filter Types by Constructor
             if (config.HasConstructorArgs != null)
@@ -1890,12 +1892,7 @@ TypeDefinition[] allTypes)
                     && x.Parameters.Count == config.HasConstructorArgs.Length
                     && config.HasConstructorArgs.Length == config.HasConstructorArgs.Sum(arg => x.Parameters.Select(x => x.Name).Contains(arg) ? 1 : 0)
                     )).ToList();
-            //findTypes = findTypes.Where(x
-            //        =>
-            //            (config.HasConstructorArgs == null || config.HasConstructorArgs.Length == 0
-            //                || (x.Methods.Where(x => x.IsConstructor).Where(y => y.Parameters.Any(z => config.HasConstructorArgs.Contains(z.Name))).Count() >= config.HasConstructorArgs.Length))
 
-            //        ).ToList();
             return findTypes;
         }
 

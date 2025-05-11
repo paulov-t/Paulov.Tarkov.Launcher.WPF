@@ -11,9 +11,26 @@
       "HasMethods": [ "RunValidation" ]
     },
     {
+      "RenameClassNameTo": "TraderDialogInteractionScreenClass",
+      "HasMethods": [ "ShowDialogScreen", "ExecuteQuestAction" ]
+    },
+    {
       "RenameClassNameTo": "PostRaidHealthScreenClass",
-      "HasFields": [ "PlayerVisualRepresentation_0", "Profile_0", "Boolean_0", "Boolean_1", "Boolean_2", "Boolean_3" ],
+      "HasFields": [ "exitStatus_0" ],
       "HasMethods": [ "OnProfileChangeApplied", "method_16" ]
+    },
+    {
+      "RenameClassNameTo": "BackendDummyClass",
+      "HasMethods": [ "CreateClientSession" ]
+    },
+    {
+      "RenameClassNameTo": "SpawnSystemClass",
+      "HasMethods": [ "Validate" ],
+      "ExactDeclaredPropertyCount": 1
+    },
+    {
+      "RenameClassNameTo": "BackendAbstractClass",
+      "HasMethods": [ "RegenerateToken" ]
     },
     {
       "RenameClassNameTo": "SslCertPatchClass",
@@ -47,18 +64,18 @@
       "HasMethods": [ "CreateItem", "CreateFakeStash" ]
     },
     {
-      "RenameClassNameTo": "PoolManager",
+      "RenameClassNameTo": "PoolManagerClass",
       "HasMethods": [ "LoadBundlesAndCreatePools" ]
     },
     {
-      "RenameClassNameTo": "MainMenuController",
-      "HasFields": [ "HealthController", "InventoryController", "GroupId", "MatchingType", "IsInSession" ],
-      "HasMethods": [ "OnProfileChangeApplied", "ShowScreen", "StopAfkMonitor", "StoreProfile", "Unsubscribe" ]
+      "RenameClassNameTo": "MainMenuControllerClass",
+      "HasFields": [],
+      "HasMethods": [ "StopAfkMonitor" ]
     },
     {
-      "RenameClassNameTo": "FramerateLimitClass",
-      "HasFields": [ "player_0", "iPlayer", "AIData", "AverageRotationSpeed", "BotSoundCoef", "SoundRadius", "Velocity", "IsAI", "CharacterController", "CurrentStataName", "CharacterSpeed" ],
-      "HasMethods": [ "HasBodyPartCollider", "ShotReactions" ]
+      "RenameClassNameTo": "GameGraphicsClass",
+      "HasFields": [ "MinFramerateLimit", "MaxFramerateLobbyLimit", "MaxFramerateGameLimit" ],
+      "HasMethods": [ "SetFramerateLimits", "CreateBindings", "GetDefaultDisplaySettings" ]
     },
     // This doesn't seem right, take it up with Chomp
     //{
@@ -66,6 +83,11 @@
     //  "HasFields": [ "player_0", "iPlayer", "AIData", "AverageRotationSpeed", "BotSoundCoef", "SoundRadius", "Velocity", "IsAI", "CharacterController", "CurrentStataName", "CharacterSpeed" ],
     //  "HasMethods": [ "HasBodyPartCollider", "ShotReactions" ]
     //},
+    {
+      "RenameClassNameTo": "LoggerFactoryClass",
+      "HasFields": [],
+      "HasMethods": [ "CreateLogger" ]
+    },
     {
       "RenameClassNameTo": "EnergyControllerClass",
       "HasFields": [ "IsEnergyGenerationOn" ]
@@ -78,6 +100,11 @@
       "RenameClassNameTo": "ProductionControllerClass",
       "HasFields": [ "TotalProducedItemsCount", "TotalFailedItemsCount" ],
       "HasEvents": [ "OnProductionComplete", "OnProducedItemCountChanged" ]
+    },
+    {
+      "RenameClassNameTo": "NotificationAbstractClass",
+      "IsAbstract": true,
+      "HasFields": [ "CreateView" ]
     },
     {
       "RenameClassNameTo": "NotificationClass",
@@ -162,10 +189,11 @@
       "HasFields": [ "Id", "StartTime", "Status", "StatusStartTimestamps", "CompletedConditions", "AvailableAfter", "Template" ]
     },
     {
-      "RenameClassNameTo": "QuestClass",
+      "RenameClassNameTo": "AbstractQuestClass",
       "IsClass": true,
-      "HasFields": [ "Id", "InstantComplete", "PlayerSide", "ProgressCheckers", "QuestStatus" ],
-      "HasMethods": [ "GetCondition" ]
+      "IsAbstract": true,
+      "HasFields": [ ],
+      "HasMethods": [ "IsConditionDone" ]
     },
     {
       "RenameClassNameTo": "QuestControllerClass",
@@ -177,7 +205,8 @@
     {
       "RenameClassNameTo": "RawQuestClass",
       "IsClass": true,
-      "HasFields": [ "QuestSuccessMessageKey", "AcceptPlayerMessageKey", "DeclinePlayerMessageKey", "CompletePlayerMessageKey" ]
+      "HasFields": [ "QuestSuccessMessageKey", "AcceptPlayerMessageKey", "DeclinePlayerMessageKey", "CompletePlayerMessageKey" ],
+      "HasMethods": [ "CreateNewQuest" ]
     },
     {
       "RenameClassNameTo": "DailyQuestClass",
