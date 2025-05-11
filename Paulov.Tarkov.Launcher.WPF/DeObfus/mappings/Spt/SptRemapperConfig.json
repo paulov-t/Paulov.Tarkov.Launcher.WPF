@@ -33,13 +33,57 @@
       "HasMethods": [ "RegenerateToken" ]
     },
     {
+      "RenameClassNameTo": "DataHandlerClass",
+      "HasMethods": [ "SendAndHandleRetries" ]
+    },
+    {
       "RenameClassNameTo": "SslCertPatchClass",
       "HasFields": [ "string_0" ],
       "HasMethods": [ "ValidateCertificate" ]
     },
     {
+      "RenameClassNameTo": "ActorDataStruct",
+      "IsStruct": true,
+      "HasFields": [ "MainTactic" ]
+    },
+    {
+      "RenameClassNameTo": "RadioTransmitterHandlerClass",
+      "HasMethods": [ "OnGetRadioTransmitterStatusFromClient" ]
+    },
+    {
+      "RenameClassNameTo": "ExfiltrationControllerClass",
+      "HasMethods": [ "AssignScavIdToPoint" ]
+    },
+    {
+      "RenameClassNameTo": "GameServerClass",
+      "HasFields": [ "Ping" ]
+    },
+    {
+      "RenameClassNameTo": "QuestItemClass",
+      "HasFields": [ "parentId", "_tpl", "_id" ],
+      "ExactDeclaredFieldCount": 3
+    },
+    {
+      "RenameClassNameTo": "GenericParsedJsonResponseClass",
+      "HasFields": [ "err", "errmsg", "data", "crc" ],
+      "ExactDeclaredFieldCount": 4
+    },
+    {
+      "RenameClassNameTo": "InsuredItemClass",
+      "HasFields": [ "itemId", "tid" ],
+      "ExactDeclaredFieldCount": 2
+    },
+    {
+      "RenameClassNameTo": "BackendConfigClass",
+      "HasFields": [ "BotWeaponScatterings" ]
+    },
+    {
       "RenameClassNameTo": "LocationSettingsClass",
       "HasFields": [ "locations", "paths" ]
+    },
+    {
+      "RenameClassNameTo": "BotPresetClass",
+      "HasFields": [ "MAX_AIMING_UPGRADE_BY_TIME" ]
     },
     {
       "RenameClassNameTo": "BotMemoryClass",
@@ -50,7 +94,11 @@
       "HasFields": [ "StaminaDrain", "StaminaRestoration", "Stamina", "Mastering", "SkillsSettings" ]
     },
     {
-      "RenameClassNameTo": "WaveInfo",
+      "RenameClassNameTo": "SharedGameSettingsClass",
+      "HasMethods": [ "UpdateMergedControls" ]
+    },
+    {
+      "RenameClassNameTo": "WaveInfoClass",
       "HasFields": [ "Role", "Limit", "Difficulty" ]
     },
     {
@@ -59,9 +107,20 @@
       "HasMethods": [ "ChangeSessionTime", "Start", "Stop" ]
     },
     {
-      "RenameClassNameTo": "ItemFactory",
+      "RenameClassNameTo": "ItemFactoryClass",
       "OnlyRemapFirstFoundType": true,
       "HasMethods": [ "CreateItem", "CreateFakeStash" ]
+    },
+    {
+      "RenameClassNameTo": "ProfileStatusClass",
+      "OnlyRemapFirstFoundType": true,
+      "HasMethods": [ "IsAppropriateStatusChange" ]
+    },
+    {
+      "RenameClassNameTo": "InfoClass",
+      "IsClass": true,
+      "HasFields": [ "Nickname", "MemberCategory", "GroupInviteRestriction", "IsStreamerModeAvailable", "Voice", "GameVersion", "NicknameChangeDate", "HasCoopExtension", "TeamId", "GroupId", "SavageLockTime", "RegistrationDate", "Side", "MainProfileNickname", "EntryPoint" ],
+      "HasEvents": [ "OnLevelChanged", "OnExperienceChanged", "OnBanChanged" ]
     },
     {
       "RenameClassNameTo": "PoolManagerClass",
@@ -77,12 +136,10 @@
       "HasFields": [ "MinFramerateLimit", "MaxFramerateLobbyLimit", "MaxFramerateGameLimit" ],
       "HasMethods": [ "SetFramerateLimits", "CreateBindings", "GetDefaultDisplaySettings" ]
     },
-    // This doesn't seem right, take it up with Chomp
-    //{
-    //  "RenameClassNameTo": "ProfileChangesPocoClass",
-    //  "HasFields": [ "player_0", "iPlayer", "AIData", "AverageRotationSpeed", "BotSoundCoef", "SoundRadius", "Velocity", "IsAI", "CharacterController", "CurrentStataName", "CharacterSpeed" ],
-    //  "HasMethods": [ "HasBodyPartCollider", "ShotReactions" ]
-    //},
+    {
+      "RenameClassNameTo": "ProfileChangesPocoClass",
+      "HasFields": [ "UnlockedRecipes" ]
+    },
     {
       "RenameClassNameTo": "LoggerFactoryClass",
       "HasFields": [],
@@ -90,7 +147,8 @@
     },
     {
       "RenameClassNameTo": "EnergyControllerClass",
-      "HasFields": [ "IsEnergyGenerationOn" ]
+      "HasMethods": [ "AddGenerator" ],
+      "IsSealed": true
     },
     {
       "RenameClassNameTo": "HideoutClass",
@@ -192,7 +250,7 @@
       "RenameClassNameTo": "AbstractQuestClass",
       "IsClass": true,
       "IsAbstract": true,
-      "HasFields": [ ],
+      "HasFields": [],
       "HasMethods": [ "IsConditionDone" ]
     },
     {
@@ -856,12 +914,6 @@
       "RenameClassNameTo": "SharedGameSettingsClass",
       "IsClass": true,
       "HasFields": [ "Game", "Sound", "PostFx", "Graphics", "Control" ]
-    },
-    {
-      "RenameClassNameTo": "InfoClass",
-      "IsClass": true,
-      "HasFields": [ "Nickname", "MemberCategory", "GroupInviteRestriction", "IsStreamerModeAvailable", "Voice", "GameVersion", "NicknameChangeDate", "HasCoopExtension", "TeamId", "GroupId", "SavageLockTime", "RegistrationDate", "Side", "MainProfileNickname", "EntryPoint" ],
-      "HasEvents": [ "OnLevelChanged", "OnExperienceChanged", "OnBanChanged" ]
     },
     {
       "RenameClassNameTo": "MasterSkillClass",
