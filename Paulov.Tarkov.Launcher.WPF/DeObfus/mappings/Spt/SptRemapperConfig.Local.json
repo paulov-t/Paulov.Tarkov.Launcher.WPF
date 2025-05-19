@@ -1,0 +1,53 @@
+{
+  // Enable/Disable the Automatic System of Remapping via Code
+  "AutomaticRemapping": "None",
+  // Enable/Disable the Defined Mapping list of Remapping - The defined list runs after the Automatic Remap
+  "EnableDefinedRemapping": "Remap",
+  "DefinedRemapping": [
+    {
+      "RenameClassNameTo": "BotsPresets",
+      "IsClass": true,
+      "HasMethods": [ "FillCreationDataWithProfiles" ]
+    },
+    {
+      "RenameClassNameTo": "MainMenuControllerClass",
+      "HasFields": [],
+      "HasMethods": [ "StopAfkMonitor" ]
+    },
+    {
+      "RenameClassNameTo": "IBotController",
+      "IsInterface": true,
+      "HasFields": [ "Position", "GoalEnemy", "Settings", "BossToFollow", "Covers", "Id", "IsDamaged", "Brain" ]
+    },
+    {
+      "RenameClassNameTo": "ISession",
+      "IsInterface": true,
+      "HasFields": [],
+      "HasEvents": [ "InventoryErrorHappened", "InventoryWarningHappened" ],
+      "HasMethods": [ "GetProfiles", "SetMainProfile", "RagfairAddOffer", "RagfairRemoveOffer", "RagfairRenewOffer", "RagfairPurchaseOffers", "RagfairGetPrices" ],
+      "OnlyRemapFirstFoundType": true
+    },
+    {
+      "RenameClassNameTo": "BotCreationDataClass",
+      "IsClass": true,
+      "HasFields": [ "Profiles" ],
+      "HasMethods": [ "IsValidSpawnType", "ChooseProfile" ],
+      "HasMethodsStatic": [ "CreateWithoutProfile", "Create" ]
+    },
+    {
+      "RenameClassNameTo": "WaveInfoClass",
+      "HasFields": [ "Role", "Limit", "Difficulty" ]
+    },
+    {
+      "RenameClassNameTo": "PoolManagerClass",
+      "HasMethods": [ "LoadBundlesAndCreatePools" ]
+    },
+    {
+      "RenameClassNameTo": "JobPriority",
+      "HasFields": [ "General", "Low", "Immediate" ],
+      "HasMethodsStatic": [ "GetYieldDelegate" ]
+    }
+  ],
+  "EnableForceAllTypesPublic": true,
+  "EnumAdditions": []
+}
