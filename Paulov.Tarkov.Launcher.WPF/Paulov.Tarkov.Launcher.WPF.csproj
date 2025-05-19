@@ -397,7 +397,7 @@
     <None Update="AddNewServerDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
     </None>
-    <None Update="DeObfus\mappings\Spt\SptRemapperConfig.json">
+    <None Update="DeObfus\mappings\Spt\SptRemapperConfig.EverythingElse.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="DeObfus\mappings\Paulov\PaulovNetworkRemapperConfig.json">
@@ -405,6 +405,9 @@
     </None>
     <None Update="DeObfus\mappings\Paulov\PaulovRemapperConfig.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="DeObfus\mappings\Spt\SptRemapperConfig.Local.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
