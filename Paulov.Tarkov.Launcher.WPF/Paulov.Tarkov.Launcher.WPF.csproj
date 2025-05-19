@@ -12,17 +12,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Images\EFTLogo.png" />
+    <None Remove="Images\TarkovBackground.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Page Remove="Resources\Languages\English.xaml" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Images\Arena.jpg">
+    <Resource Include="Images\EFTLogo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Resource Include="Images\StayInTarkov.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-	</Resource>
+    </Resource>
+    <Resource Include="Images\TarkovBackground.jpg" />
     <Resource Include="Resources\Languages\English.xaml" />
     <Content Include="References\Accessibility.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -407,6 +409,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="DeObfus\mappings\Spt\SptRemapperConfig.Local.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\ArenaLogo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
