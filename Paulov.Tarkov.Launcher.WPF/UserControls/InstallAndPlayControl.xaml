@@ -20,7 +20,7 @@
             </Style>
         </Grid.Resources>
         <Grid.Background>
-            <ImageBrush ImageSource="{Binding Background}" />
+            <ImageBrush ImageSource="/Images/TarkovBackground.jpg" />
         </Grid.Background>
 
 

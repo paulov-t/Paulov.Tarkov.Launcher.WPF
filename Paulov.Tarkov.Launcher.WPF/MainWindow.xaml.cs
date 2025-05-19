@@ -18,7 +18,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Tarkov.Deobfuscator;
 
 namespace Paulov.Launcher
@@ -196,16 +195,6 @@ namespace Paulov.Launcher
             if (File.Exists("LauncherConfig.json"))
             {
                 Config = JsonConvert.DeserializeObject<LauncherConfig>(File.ReadAllText("LauncherConfig.json"));
-            }
-            // Create Icon for SIT
-            if (Uri.TryCreate("Images/StayInTarkov.jpg", UriKind.RelativeOrAbsolute, out Uri sitIconUri))
-            {
-                this.SITIcon = new BitmapImage(sitIconUri);
-            }
-            // Create Icon for Paulov Arena
-            if (Uri.TryCreate(Path.Combine(App.ApplicationDirectory, "Images/Arena.jpg"), UriKind.RelativeOrAbsolute, out Uri arenaIconUri))
-            {
-                this.ArenaIcon = new BitmapImage(arenaIconUri);
             }
 
             this.DataContext = this;
