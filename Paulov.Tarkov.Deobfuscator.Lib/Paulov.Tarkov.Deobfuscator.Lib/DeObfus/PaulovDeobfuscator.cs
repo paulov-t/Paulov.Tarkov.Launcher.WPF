@@ -1813,6 +1813,16 @@ TypeDefinition[] allTypes)
                             )
                         )).ToList();
 
+            foundDefinition = foundDefinition.Where(
+                x =>
+                        (
+                            // properties
+                            (
+                            config.HasProperties == null || config.HasProperties.Length == 0
+                            || (x.Properties.Count(y => config.HasProperties.Contains(y.Name)) >= config.HasProperties.Length)
+                            )
+                        )).ToList();
+
             // Filter Types by Class
             foundDefinition = foundDefinition.Where(
                 x =>
@@ -1840,7 +1850,9 @@ TypeDefinition[] allTypes)
             foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredMethodCount.HasValue || (x.GetMethods().Count(y => y.DeclaringType == x) == config.ExactDeclaredMethodCount.Value)).ToList();
 
             // Filter types by Exact DeclaredFieldCount
-            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) + x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
+            //foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) + x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
+
+            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
 
             // Filter types by Exact DeclaredPropertyCount
             foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredPropertyCount.HasValue || (x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredPropertyCount.Value)).ToList();
