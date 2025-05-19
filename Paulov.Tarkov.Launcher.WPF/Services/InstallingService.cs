@@ -3,7 +3,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Paulov.Launcher.Services
@@ -29,7 +28,7 @@ namespace Paulov.Launcher.Services
                     Directory.CreateDirectory(Directory.GetParent(newFilePath).FullName);
 
                     var fiNewFile = new FileInfo(newFilePath);
-                    if (!fiNewFile.Exists || fiNewFile.LastWriteTime < file.LastWriteTime)
+                    if (!fiNewFile.Exists || fiNewFile.LastWriteTime < file.LastWriteTime || fiNewFile.FullName.Contains("EscapeFromTarkov_Data\\Managed", StringComparison.OrdinalIgnoreCase))
                     {
                         using (FileStream SourceStream = File.Open(file.FullName, System.IO.FileMode.Open))
                         {

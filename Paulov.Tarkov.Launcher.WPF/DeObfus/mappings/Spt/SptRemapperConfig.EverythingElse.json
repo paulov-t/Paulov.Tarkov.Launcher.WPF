@@ -12,7 +12,7 @@
     },
     {
       "RenameClassNameTo": "TraderDialogInteractionScreenClass",
-      "HasMethods": [ "ShowDialogScreen", "ExecuteQuestAction" ]
+      "HasMethodsStatic": [ "ShowDialogScreen", "ForceCloseCurrentScreen" ]
     },
     {
       "RenameClassNameTo": "PostRaidHealthScreenClass",
@@ -34,6 +34,7 @@
     },
     {
       "RenameClassNameTo": "DataHandlerClass",
+      "IsSealed": true,
       "HasMethods": [ "SendAndHandleRetries" ]
     },
     {
@@ -98,10 +99,6 @@
       "HasMethods": [ "UpdateMergedControls" ]
     },
     {
-      "RenameClassNameTo": "WaveInfoClass",
-      "HasFields": [ "Role", "Limit", "Difficulty" ]
-    },
-    {
       "RenameClassNameTo": "GameTimerClass",
       "HasFields": [ "Status", "SessionTime", "StartDateTime" ],
       "HasMethods": [ "ChangeSessionTime", "Start", "Stop" ]
@@ -121,15 +118,6 @@
       "IsClass": true,
       "HasFields": [ "Nickname", "MemberCategory", "GroupInviteRestriction", "IsStreamerModeAvailable", "Voice", "GameVersion", "NicknameChangeDate", "HasCoopExtension", "TeamId", "GroupId", "SavageLockTime", "RegistrationDate", "Side", "MainProfileNickname", "EntryPoint" ],
       "HasEvents": [ "OnLevelChanged", "OnExperienceChanged", "OnBanChanged" ]
-    },
-    {
-      "RenameClassNameTo": "PoolManagerClass",
-      "HasMethods": [ "LoadBundlesAndCreatePools" ]
-    },
-    {
-      "RenameClassNameTo": "MainMenuControllerClass",
-      "HasFields": [],
-      "HasMethods": [ "StopAfkMonitor" ]
     },
     {
       "RenameClassNameTo": "GameGraphicsClass",
@@ -152,7 +140,7 @@
     },
     {
       "RenameClassNameTo": "HideoutClass",
-      "HasFields": [ "ProductionController", "ImprovementController", "AreaInfo_0" ]
+      "HasFields": [ "ProductionController", "ImprovementController" ]
     },
     {
       "RenameClassNameTo": "ProductionControllerClass",
@@ -162,20 +150,16 @@
     {
       "RenameClassNameTo": "NotificationAbstractClass",
       "IsAbstract": true,
-      "HasFields": [ "CreateView" ]
-    },
-    {
-      "RenameClassNameTo": "NotificationClass",
-      "HasFields": [ "ShowNotification", "Icon" ]
+      "HasMethods": [ "CreateView" ]
     },
     {
       "RenameClassNameTo": "NotificationManagerClass",
       "HasFields": [ "ProfileChangeNotifications", "Notifications" ]
     },
-    // I couldn't find this class? GClass2947
-    //{
-    //  "RenameClassNameTo": "CameraClass",
-    //},
+    {
+      "RenameClassNameTo": "NotificationClass",
+      "HasFields": [ "ShowNotification", "Icon" ]
+    },
     {
       "RenameClassNameTo": "CameraClass",
       "HasFields": [ "SSAA", "EffectsController", "MeshHighlighter", "IsOcclusionCullingAllowed", "VisorEffect", "NightVision", "ThermalVision", "PostFX" ]
@@ -318,8 +302,7 @@
     {
       "RenameClassNameTo": "MoneyClass",
       "IsClass": true,
-      "HasFields": [ "type", "eqMin", "eqMax", "rate" ],
-      "ExactDeclaredFieldCount": 4
+      "HasFields": [ "type", "eqMin", "eqMax", "rate", "IsRagfairCurrency" ]
     },
     {
       "RenameClassNameTo": "ThrowableWeaponClass",
@@ -391,11 +374,6 @@
       "ExactDeclaredFieldCount": 2
     },
     {
-      "RenameClassNameTo": "StockItemClass",
-      "HasFields": [ "HeatFactor", "CoolFactor", "Foldable", "DurabilityBurnModificator" ],
-      "ExactDeclaredFieldCount": 4
-    },
-    {
       "RenameClassNameTo": "BarrelModClass",
       "HasFields": [ "CenterOfImpactMOA" ]
     },
@@ -448,10 +426,6 @@
       "RenameClassNameTo": "GrenadeClass",
       "HasMethods": [ "CreateFragment", "GetItem" ]
     },
-    //{
-    //  "RenameClassNameTo": "TemplateIdToObjectMappingsClass",
-    //  "HasMethods": [ "ItemConstructors" ]
-    //},
     {
       "RenameClassNameTo": "ItemAttributeClass",
       "HasFields": [ "Enhancement" ],
@@ -460,8 +434,7 @@
     },
     {
       "RenameClassNameTo": "TraderControllerClass",
-      "HasEvents": [ "OnItemFound" ],
-      "HasConstructorArgs": [ "rootItem", "profileId", "name", "canBeLocalized", "type", "questStashItem", "questRaidItem" ]
+      "HasFields": [ "MainStorage" ]
     },
     {
       "RenameClassNameTo": "InventoryControllerClass",
@@ -470,13 +443,11 @@
     },
     {
       "RenameClassNameTo": "BossKojaniyBrainClass",
-      "HasMethods": [ "SetBossKojaniy" ],
-      "HasConstructorArgs": [ "botOwner" ]
+      "HasMethods": [ "SetBossKojaniy" ]
     },
     {
       "RenameClassNameTo": "RagdollClass",
-      "HasFields": [ "rigidbodySpawner_0" ],
-      "HasMethods": [ "Start", "Update" ]
+      "HasMethods": [ "AttachWeapon" ]
     },
     {
       "RenameClassNameTo": "ShootPointClass",
@@ -512,21 +483,10 @@
       "IsInterface": true,
       "HasMethods": [ "EnergyGenerationChanged" ]
     },
-    // This seems wrong. Take it up with Chomp
-    //{
-    //  "RenameClassNameTo": "MovementContextClass",
-    //  "IsInterface": true,
-    //  "HasMethods": [ "EnergyGenerationChanged" ]
-    //},
     {
       "RenameClassNameTo": "RagfairSettingsClass",
       "IsClass": true,
       "HasFields": [ "maxActiveOfferCount", "SellInOnePiece" ]
-    },
-    {
-      "RenameClassNameTo": "JobPriority",
-      "HasFields": [ "General", "Low", "Immediate" ],
-      "HasMethodsStatic": [ "GetYieldDelegate" ]
     },
     {
       "RenameClassNameTo": "BundleLock",
@@ -549,24 +509,17 @@
     },
     {
       "RenameClassNameTo": "BossSpawnerClass",
-      "HasMethods": [ "InitBossSpawnDebug", "Spawn" ],
-      "HasConstructorArgs": [ "spawnSystem", "spawner", "botCreator", "allZones" ]
+      "HasMethods": [ "InitBossSpawnDebug" ]
     },
     {
       "RenameClassNameTo": "ZoneLeaveControllerClass",
       "IsClass": true,
-      "HasMethods": [ "SetMaxBots", "IsZoneBlockFor", "BotSpawned" ]
+      "HasMethods": [ "ClearByTypeAll" ]
     },
     {
       "RenameClassNameTo": "BotsClass",
       "IsClass": true,
-      "HasMethods": [ "GetListByZone", "GetOtherSideRule", "GetEnemiesBySettings", "AddFromList", "Add", "Remove", "RemovePlayer" ]
-    },
-    {
-      "RenameClassNameTo": "BotsPresets",
-      "IsClass": true,
-      // "HasFields": [ "BundlesLoading" ],
-      "HasMethods": [ "FillCreationDataWithProfiles" ]
+      "HasMethods": [ "CheckActivation" ]
     },
     {
       "RenameClassNameTo": "ProfileDataClass",
@@ -577,11 +530,6 @@
       "RenameClassNameTo": "IConnectionHandler",
       "IsInterface": true,
       "HasMethods": [ "SetUri", "SetUriParam", "SetRequestHeader", "Open" ]
-    },
-    {
-      "RenameClassNameTo": "IBotData",
-      "IsInterface": true,
-      "HasMethods": [ "PrepareToLoadBackend", "ChooseProfile" ]
     },
     {
       "RenameClassNameTo": "IEffect",
@@ -639,23 +587,6 @@
     {
       "RenameClassNameTo": "BotSettingsRepoClass",
       "HasMethodsStatic": [ "CountAsBossForStatistics", "GetPhraseTagFromRole", "GetScavRoleKey", "IsBoss", "IsHostileToEverybody" ]
-    },
-    {
-      "RenameClassNameTo": "BotSettingsValuesClass",
-      "HasFields": [ "IsBoss", "IsFollower", "IsHostileToEverybody", "ScavRoleKey", "PhraseTag" ]
-    },
-    {
-      "RenameClassNameTo": "IBotController",
-      "IsInterface": true,
-      "HasFields": [ "Position", "GoalEnemy", "Settings", "BossToFollow", "Covers", "Id", "IsDamaged", "Brain" ]
-    },
-    {
-      "RenameClassNameTo": "ISession",
-      "IsInterface": true,
-      "HasFields": [],
-      "HasEvents": [ "InventoryErrorHappened", "InventoryWarningHappened" ],
-      "HasMethods": [ "GetProfiles", "SetMainProfile", "RagfairAddOffer", "RagfairRemoveOffer", "RagfairRenewOffer", "RagfairPurchaseOffers", "RagfairGetPrices" ],
-      "OnlyRemapFirstFoundType": true
     },
     {
       "RenameClassNameTo": "LayerMaskClass",
@@ -724,28 +655,14 @@
     {
       "RenameClassNameTo": "AICoreActionResultStruct",
       "IsStruct": true,
-      "HasConstructorArgs": [ "action", "reason" ],
-      "HasFields": [ "Action", "Reason" ]
+      "HasFields": [ "Action", "Reason", "Data" ]
     },
-
-    //,
-    //{
-    //  "RenameClassNameTo": "LootItemPositionClass",
-    //  "ClassName": "JsonLootItem",
-    //  "OnlyRemapFirstFoundType": true
-    //}
-
-    /*
-    // This is auto remapped to BtrController
-    "GClass2911": "BTRControllerClass",
-    */
     {
       "RenameClassNameTo": "BTRControllerClass",
       "IsClass": true,
       "IsSealed": true,
       "HasFields": [ "btrvehicle_0", "btrview_0" ]
     },
-    // "GStruct378": "BTRDataPacket",
     {
       "RenameClassNameTo": "BTRDataPacket",
       "IsStruct": true,
@@ -753,43 +670,31 @@
       "HasMethods": [ "Serialize", "Deserialize" ]
 
     },
-    // This is auto remapped to InteractWithBtrPacket
-    //"GStruct167": "PlayerInteractPacket",
-
-    //"GClass3260": "AchievementDataClass",
     {
       "RenameClassNameTo": "AchievementDataClass",
       "IsClass": true,
       "HasFields": [ "GlobalProgressPercent" ],
       "HasConstructorArgs": [ "tid", "unlockDate", "globalProgressPercent", "status" ]
     },
-    //"GClass3215": "AchievementControllerClass",
     {
       "RenameClassNameTo": "AchievementControllerClass",
       "IsClass": true,
       "IsSealed": true,
-      "MustBeGClass": true,
-      "HasMethods": [ "InitConditionsConnectorsManager", "FinishAchievement", "SetConditionalStatus" ],
-      "HasConstructorArgs": [ "profile", "inventoryController", "session", "updateAchievements" ],
-      "ExactDeclaredMethodCount": 3
+      "HasMethods": [ "FinishAchievement", "SetConditionalStatus" ],
+      "ExactDeclaredFieldCount": 1
     },
-    // This is auto remapped to BufferZoneController
-    //"GClass2954": "BufferZoneControllerClass",
     {
       "RenameClassNameTo": "BufferZoneControllerClass",
       "IsClass": true,
       "MustBeGClass": true,
       "HasMethods": [ "ShowAlreadyHaveCustomersNotification", "ShowGateNotAvailableNotification" ]
     },
-    //"GClass1859": "GetActionsClass",
     {
       "RenameClassNameTo": "GetActionsClass",
       "IsClass": true,
       "MustBeGClass": true,
       "HasMethodsStatic": [ "GetAvailableActions", "GetAvailableHideoutActions" ]
     },
-    // This is auto remapped to AbstractQuestController
-    //"GClass3209": "AbstractQuestControllerClass",
     {
       "RenameClassNameTo": "AbstractQuestControllerClass",
       "IsAbstract": true,
@@ -798,59 +703,29 @@
       "HasFields": [ "Quests" ],
       "HasMethodsVirtual": [ "TryExecuteTransition" ]
     },
-
-    // This is auto remapped to AbstractAchievementController
-    //"GClass3213": "AbstractAchievementControllerClass",
     {
       "RenameClassNameTo": "AbstractAchievementControllerClass",
       "IsAbstract": true,
       "IsClass": true,
-      "MustBeGClass": true,
-      "HasFields": [ "AchievementsBook" ],
-      "HasMethods": [ "OnConditionalStatusChangedEvent", "CreateConditionalList", "Dispose" ]
+      "HasProperties": [ "AchievementsBook" ],
+      "HasMethods": [ "OnConditionalStatusChangedEvent", "CreateConditionalList" ]
     },
-    // This is auto remapped to Request1
-    //"GStruct21": "LegacyParamsStruct",
     {
       "RenameClassNameTo": "LegacyParamsStruct",
       "HasFields": [ "Params", "DefaultTimeoutSeconds", "NoRetries", "FirstCycleDelaySeconds", "SecondCycleDelaySeconds", "NextCycleDelaySeconds", "DefaultRetries", "MaximumRetries" ]
     },
-
-    // This is auto remapped to HalloweenEventController
-    //"GClass1481": "HalloweenEventControllerClass",
     {
       "RenameClassNameTo": "HalloweenEventControllerClass",
       "IsClass": true,
       "MustBeGClass": true,
       "HasFields": [ "halloweenEventVisual_0" ]
     },
-    // This is auto remapped to ImprovementController
-    //"GClass1912": "ImprovementControllerClass",
     {
       "RenameClassNameTo": "ImprovementControllerClass",
       "IsClass": true,
       "MustBeGClass": true,
       "HasMethods": [ "SetImprovements", "SetImprovementDataset", "UpdateImprovements" ]
     },
-    // This is auto remapped to MatchmakerPlayersController
-    //{
-    //  "RenameClassNameTo": "MatchmakerPlayerControllerClass",
-    //  "IsClass": true,
-    //  "MustBeGClass": true,
-    //  "HasEvents": [ "OnReadyToStartRaid" ],
-    //  "HasMethods": [ "CreateRaidPlayerInfo", "NotificationReceivedHandler", "ShowInviteInRaidWindow", "GetContextInteractions", "OpenPlayerProfile" ]
-    //},
-    // This is auto remapped to Achievement1
-    //"GClass1251": "AchievementClass",
-    {
-      "RenameClassNameTo": "AchievementClass",
-      "IsClass": true,
-      "MustBeGClass": true,
-      "HasFields": [ "Template", "StatusData" ],
-      "HasMethods": [ "Initialize", "SetStatus", "CheckForStatusChange", "LoadSprite", "Reset" ]
-    },
-
-    //"GClass598": "BotEventHandler",
     {
       "RenameClassNameTo": "BotEventHandler",
       "IsClass": true,
@@ -861,20 +736,6 @@
       "IsClass": true,
       "HasMethodsStatic": [ "CreateEvent", "TryGetEvents" ],
       "HasMethods": [ "ApplyEvents", "ClearEvents", "Initialize", "method_0" ]
-    },
-    //{
-    //  "RenameClassNameTo": "CultistEventsClass",
-    //  "IsClass": true,
-    //  "HasMethodsStatic": [ "CreateEvent", "TryGetEvents" ],
-    //  "HasMethods": [ "ApplyEvents", "ClearEvents", "Initialize", "method_0" ]
-    //},
-
-    {
-      "RenameClassNameTo": "BotCreationDataClass",
-      "IsClass": true,
-      "HasFields": [ "Profiles" ],
-      "HasMethods": [ "IsValidSpawnType", "ChooseProfile" ],
-      "HasMethodsStatic": [ "CreateWithoutProfile", "Create" ]
     },
     // This is stuff that is not on Aki's list
     {
@@ -908,7 +769,8 @@
       "RenameClassNameTo": "SessionCounterTypesAbstractClass",
       "IsAbstract": true,
       "IsClass": true,
-      "HasFields": [ "ExpKillBase", "AmmoReached", "AmmoUsed", "MoneyUsd" ]
+      "HasFields": [ "ExpKillBase" ],
+      "HasMethods": [ "Warmup" ]
     },
     {
       "RenameClassNameTo": "SharedGameSettingsClass",
@@ -930,6 +792,20 @@
       "IsInterface": true,
       "HasFields": [ "Item", "WaitingForHighThrow", "WaitingForLowThrow" ],
       "HasMethods": [ "CanThrow", "HighThrow" ]
+    },
+    {
+      "RenameClassNameTo": "ProfileHealthClass",
+      "HasFields": [ "BodyParts", "Energy", "Hydration", "Temperature", "Poison" ]
+    },
+    {
+      "RenameClassNameTo": "NetworkHealthControllerAbstractClass",
+      "IsAbstract": true,
+      "HasMethods": [ "HandleSyncPacket" ]
+    },
+    {
+      "RenameClassNameTo": "NetworkBodyEffectsAbstractClass",
+      "IsAbstract": true,
+      "HasMethods": [ "SetRemainingStateTime" ]
     }
   ],
   "EnableForceAllTypesPublic": true,
