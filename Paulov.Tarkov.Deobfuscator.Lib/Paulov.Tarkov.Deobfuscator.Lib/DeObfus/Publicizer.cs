@@ -1,19 +1,15 @@
 ﻿using Mono.Cecil;
 using Mono.Cecil.Rocks;
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
 {
 
     /// <summary>
     /// SPT-Aki's Publicizer https://dev.sp-tarkov.com/SPT-AKI/SPT-AssemblyTool/raw/branch/master/SPT-AssemblyTool/Publicizer.cs
-    /// with some minor changes
+    /// with some changes by Paulov-t
     /// </summary>
     public static class Publicizer
     {
@@ -26,7 +22,7 @@ namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
 
             foreach (var type in types)
             {
-                if (type.IsNested) 
+                if (type.IsNested)
                     continue; // Nested types are handled when publicizing the parent type
 
                 PublicizeType(type);
@@ -36,20 +32,27 @@ namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
 
         public static void PublicizeType(TypeDefinition type)
         {
-            // if (type.CustomAttributes.Any(a => a.AttributeType.Name == nameof(CompilerGeneratedAttribute)))
-            // {
-            //     return;
-            // }
+            if (type.CustomAttributes.Any(a => a.AttributeType.Name == nameof(CompilerGeneratedAttribute)))
+            {
+                return;
+            }
 
-            // Test
-            //if (type.Interfaces.Any(i => i.InterfaceType.Name == "IEffect"))
-            //{
-            //    type.Attributes &= ~TypeAttributes.VisibilityMask; // Remove all visibility mask attributes
-            //    type.Attributes |= type.IsNested ? TypeAttributes.NestedPrivate : TypeAttributes.NotPublic; // Apply a public visibility attribute
-            //    return;
-            //}
+            // Paulov: This handles bad delegates in the Assembly
+            if (type.Name.Contains("delegate", System.StringComparison.OrdinalIgnoreCase)
+                || type.BaseType?.Name == "MulticastDelegate" || type.BaseType?.Name == "Delegate")
+            {
+                return;
+            }
 
-            if (!type.IsNested && !type.IsPublic || type.IsNested && !type.IsNestedPublic)
+#if DEBUG
+            if (type.Name == "ActiveHealthController")
+            {
+
+            }
+#endif
+
+            if (type is { IsNested: false, IsPublic: false } or { IsNested: true, IsNestedPublic: false }
+            && type.Interfaces.All(i => i.InterfaceType.Name != "IEffect"))
             {
                 type.Attributes &= ~TypeAttributes.VisibilityMask; // Remove all visibility mask attributes
                 type.Attributes |= type.IsNested ? TypeAttributes.NestedPublic : TypeAttributes.Public; // Apply a public visibility attribute
@@ -62,13 +65,15 @@ namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
 
             foreach (var method in type.Methods)
             {
-                PublicizeMethod(method);
+                //PublicizeMethod(method);
             }
 
             foreach (var property in type.Properties)
             {
-                if (property.GetMethod != null) PublicizeMethod(property.GetMethod);
-                if (property.SetMethod != null) PublicizeMethod(property.SetMethod);
+                //if (property.GetMethod != null)
+                //    PublicizeMethod(property.GetMethod);
+                //if (property.SetMethod != null)
+                //    PublicizeMethod(property.SetMethod);
             }
 
             var nestedTypesToPublicize = type.NestedTypes.ToArray();
@@ -133,7 +138,7 @@ namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
         private static List<InterfaceImplementation> GetFlattenedInterfacesRecursive(TypeDefinition type)
         {
             var interfaces = new List<InterfaceImplementation>();
-            
+
             if (type == null)
                 return interfaces;
 

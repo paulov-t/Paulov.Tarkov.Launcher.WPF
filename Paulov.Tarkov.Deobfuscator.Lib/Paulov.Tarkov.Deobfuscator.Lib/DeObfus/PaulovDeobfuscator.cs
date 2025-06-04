@@ -28,7 +28,8 @@ namespace Tarkov.Deobfuscator
                 "source", "writer", "graph", "currequest",
                 "controller", "counter", "closest", "newobject",
                 "setting", "dictionary", "instance", "settings",
-                "variation", "operation", "template", "emitter"
+                "variation", "operation", "template", "emitter",
+                "delegate"
             };
 
 
@@ -485,9 +486,9 @@ namespace Tarkov.Deobfuscator
 
             using (var fsAssembly = new FileStream(assemblyPath, FileMode.Open))
             {
-                using (var assemblyDefin = AssemblyDefinition.ReadAssembly(fsAssembly, readerParameters))
+                using (var assemblyDefinition = AssemblyDefinition.ReadAssembly(fsAssembly, readerParameters))
                 {
-                    if (assemblyDefin != null)
+                    if (assemblyDefinition != null)
                     {
                         foreach (var fI in Directory.GetFiles(AppContext.BaseDirectory + "//DeObfus//mappings//", "*.json", SearchOption.AllDirectories).Select(x => new FileInfo(x)))
                         {
@@ -511,18 +512,18 @@ namespace Tarkov.Deobfuscator
                                     case AutoRemapperConfig.AutoRemapType.Test:
                                         // If the Remapper Config is set to use Auto Configuration. Run these two passes
                                         Log("Remapping by Auto Configuration: PASS 1");
-                                        RemapByAutoConfiguration(assemblyDefin, autoRemapperConfig, ref renamedClasses, pass: 1);
+                                        RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 1);
                                         // A second pass finds unmapped GClass that use Interfaces that have been renamed
                                         Log("Remapping by Auto Configuration: PASS 2");
-                                        RemapByAutoConfiguration(assemblyDefin, autoRemapperConfig, ref renamedClasses, pass: 2);
+                                        RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 2);
                                         // Remapping Descriptors
-                                        RemapDescriptors(assemblyDefin, autoRemapperConfig, ref renamedClasses);
+                                        RemapDescriptors(assemblyDefinition, autoRemapperConfig, ref renamedClasses);
                                         break;
                                     case AutoRemapperConfig.AutoRemapType.Aki:
-                                        var akiAutoResults = AkiAutoRemapper.CreateAutoMapping(assemblyDefin);
+                                        var akiAutoResults = AkiAutoRemapper.CreateAutoMapping(assemblyDefinition);
                                         foreach (var result in akiAutoResults)
                                         {
-                                            var typeToRename = assemblyDefin.MainModule.GetType(result.Key);
+                                            var typeToRename = assemblyDefinition.MainModule.GetType(result.Key);
                                             if (typeToRename != null)
                                                 typeToRename.Name = result.Value.OrderBy(x => x.Value).First().Key;
                                             else
@@ -537,19 +538,21 @@ namespace Tarkov.Deobfuscator
 
                             // Run the defined mapping in the configuration file
                             Log("Remapping by Defined Configuration");
-                            RemapByDefinedConfiguration(assemblyDefin, autoRemapperConfig, ref renamedClasses);
+                            RemapByDefinedConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses);
 
-                            RemapByDefinedEnumConfigurations(assemblyDefin, autoRemapperConfig);
+                            RemapByDefinedEnumConfigurations(assemblyDefinition, autoRemapperConfig);
 
                             // Remap the all types to public dependant on Config. This has to run after defined because Aki requires it to fix certain types.
                             if (autoRemapperConfig.EnableForceAllTypesPublic == true)
-                                Publicizer.PublicizeClasses(assemblyDefin);
+                                Publicizer.PublicizeClasses(assemblyDefinition);
 
-                            // Remap the Public Types dependant on mapping
-                            //RemapPublicTypesMethodsAndFields(oldAssembly, autoRemapperConfig);
-
-                            // Push this to the end so people can force on the remapped names
-                            //RemapAllMethodsToPublic(oldAssembly, autoRemapperConfig);
+                            foreach (var t in assemblyDefinition.MainModule.GetTypes())
+                            {
+                                if (t is { IsValueType: true, IsExplicitLayout: true })
+                                {
+                                    t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
+                                }
+                            }
 
                             Log(Environment.NewLine);
 
@@ -559,7 +562,7 @@ namespace Tarkov.Deobfuscator
 
                         Log(Environment.NewLine);
 
-                        assemblyDefin.Write(assemblyPath.Replace(".dll", "-remapped.dll"));
+                        assemblyDefinition.Write(assemblyPath.Replace(".dll", "-remapped.dll"));
                     }
                 }
             }
@@ -1599,9 +1602,10 @@ TypeDefinition[] allTypes)
                = assembly
                .MainModule
                .GetTypes()
-               .Where(x => !TypesToNotRemap.Select(y => y.ToLower()).Any(y => x.Name.ToLower().IndexOf(y) != -1))
+               .Where(x => !TypesToNotRemap.Select(y => y.ToLower()).Any(y => x.Name.ToLower().Contains(y)))
                .Where(x => !x.Namespace.StartsWith("System"))
                .Where(x => !x.Name.Contains("d__"))
+               .Where(x => x.CustomAttributes.Count == 0)
                .OrderBy(x => x.Name)
                .ToList();
 
@@ -1615,8 +1619,18 @@ TypeDefinition[] allTypes)
                     if (foundTypes.Any())
                     {
                         var onlyRemapFirstFoundType = config.OnlyRemapFirstFoundType.HasValue && config.OnlyRemapFirstFoundType.Value;
-                        // Only remap first found type.
-                        countOfDefinedMappingSucceeded = RemapType(autoRemapperConfig, countOfDefinedMappingSucceeded, config.RenameClassNameTo, foundTypes.FirstOrDefault(), true);
+                        if (onlyRemapFirstFoundType)
+                        {
+                            // Only remap first found type.
+                            countOfDefinedMappingSucceeded = RemapType(autoRemapperConfig, countOfDefinedMappingSucceeded, config.RenameClassNameTo, foundTypes.FirstOrDefault(), true);
+                        }
+                        else
+                        {
+                            foreach (var t in foundTypes)
+                            {
+                                countOfDefinedMappingSucceeded += RemapType(autoRemapperConfig, countOfDefinedMappingSucceeded, config.RenameClassNameTo, t, true);
+                            }
+                        }
 
                         if (config.RemoveAbstract.HasValue && config.RemoveAbstract.Value)
                         {
@@ -1648,21 +1662,15 @@ TypeDefinition[] allTypes)
             Log($"Defined Remapper: FAILED: {countOfDefinedMappingFailed}");
         }
 
+        private List<string> RemappedTypeNamesUsed = new List<string>();
+
         private int RemapType(AutoRemapperConfig autoRemapperConfig, int countSuccess, string remapName, TypeDefinition t, bool forceRemap = false, bool renameAbstract = false)
         {
-            if (
-                !forceRemap
-                &&
-                (
-                    !t.Name.StartsWith("GClass")
-                    && !t.Name.StartsWith("Class")
-                    && !t.Name.StartsWith("GInterface")
-                    && !t.Name.StartsWith("GStruct")
-                )
-                )
-                return countSuccess;
 
             if (remapName == "MonoBehavior")
+                return countSuccess;
+
+            if (t.Name.Contains("delegate", StringComparison.OrdinalIgnoreCase))
                 return countSuccess;
 
             var newClassName = remapName;
@@ -1672,7 +1680,8 @@ TypeDefinition[] allTypes)
             if (t.IsInterface && !newClassName.StartsWith("I"))
                 newClassName = newClassName.Insert(0, "I");
 
-            if (renameAbstract && t.IsClass
+            if (renameAbstract
+                && t.IsClass
                 && t.IsAbstract
                 && !newClassName.Contains("Abstract")
                 && !newClassName.StartsWith("A"))
@@ -1694,11 +1703,17 @@ TypeDefinition[] allTypes)
                 oldFullName = oldFullName.Replace("`1", sbConstraints.ToString() == "<>" ? "" : sbConstraints.ToString());
             }
 
+            var countAlreadyUsed = RemappedTypeNamesUsed.Count(x => x.StartsWith(newClassName, StringComparison.OrdinalIgnoreCase));
+            if (countAlreadyUsed > 0)
+            {
+                newClassName = $"{newClassName}{countAlreadyUsed}";
+                return countSuccess;
+            }
+
             if (autoRemapperConfig.EnableDefinedRemapping.Value == AutoRemapperConfig.AutoRemapType.Remap)
             {
-
                 t.Name = newClassName;
-                //t.Namespace = "EFT";
+                RemappedTypeNamesUsed.Add(newClassName);
 
                 Log($"Remapper: Remapped {oldFullName} to {newClassName}");
                 countSuccess++;
