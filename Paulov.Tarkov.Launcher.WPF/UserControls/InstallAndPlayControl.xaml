@@ -77,14 +77,6 @@
                         <TextBlock Text="{Binding EFTGameVersion}"></TextBlock>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Client Mod Version: "></TextBlock>
-                        <TextBlock Text="{Binding ClientModVersion}"></TextBlock>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Aki Installed:"></TextBlock>
-                        <CheckBox IsChecked="{Binding AkiInstalled, Mode=OneTime}" IsEnabled="False"></CheckBox>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Ping:"></TextBlock>
                         <TextBlock Text="{Binding Ping}"></TextBlock>
                         <TextBlock Text="ms"></TextBlock>
