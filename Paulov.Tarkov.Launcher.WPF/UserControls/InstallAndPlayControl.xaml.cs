@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Octokit;
 using Paulov.Launcher.Models;
 using Paulov.Launcher.Services;
@@ -204,6 +205,12 @@ namespace Paulov.Launcher.UserControls
             if (string.IsNullOrEmpty(returnData))
                 return;
 
+            if (returnData.Length > 10 && returnData.StartsWith("{"))
+            {
+                var parsedbsg = JObject.Parse(returnData);
+                returnData = parsedbsg["data"].ToString();
+            }
+
             // If all good, launch game with AID
             if (!string.IsNullOrEmpty(returnData) && returnData != "FAILED" && returnData != "ALREADY_IN_USE")
             {
@@ -278,6 +285,11 @@ namespace Paulov.Launcher.UserControls
 
                 // attempt to login
                 var returnData = requesting.PostJson("/launcher/profile/login", JsonConvert.SerializeObject(loginData));
+                if (returnData.Length > 10 && returnData.StartsWith("{"))
+                {
+                    var parsedbsg = JObject.Parse(returnData);
+                    returnData = parsedbsg["data"].ToString();
+                }
 
                 // If failed, attempt to register
                 if (returnData == "INVALID_PASSWORD")
