@@ -275,13 +275,6 @@
       "ExactDeclaredMethodCount": 0,
       "ExactDeclaredFieldCount": 3
     },
-    // This seems wrong. Need to report to Chomp
-    //{
-    //  "RenameClassNameTo": "Equipment",
-    //  "IsClass": true,
-    //  "HasFields": [ "Energy", "Hydration", "BodyParts" ],
-    //  "ExactDeclaredMethodCount": 0
-    //},
     {
       "RenameClassNameTo": "SecureContainerTemplateClass",
       "IsClass": true,
