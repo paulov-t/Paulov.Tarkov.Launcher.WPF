@@ -551,6 +551,7 @@ namespace Tarkov.Deobfuscator
                                 if (t is { IsValueType: true, IsExplicitLayout: true })
                                 {
                                     t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
+                                    t.Attributes |= ~Mono.Cecil.TypeAttributes.SequentialLayout;
                                 }
                             }
 
