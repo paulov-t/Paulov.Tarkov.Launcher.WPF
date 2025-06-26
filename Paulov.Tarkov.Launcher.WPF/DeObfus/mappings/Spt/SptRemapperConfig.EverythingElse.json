@@ -799,6 +799,10 @@
       "RenameClassNameTo": "NetworkBodyEffectsAbstractClass",
       "IsAbstract": true,
       "HasMethods": [ "SetRemainingStateTime" ]
+    },
+    {
+      "RenameClassNameTo": "CompleteProfileDescriptorClass",
+      "HasFields": [ "Id", "AccountId", "PetId", "KarmaValue", "Info", "Customization", "Encyclopedia", "Health", "Inventory", "InsuredItems", "Skills", "Notes", "TaskConditionCounters", "QuestsData", "AchievementsData", "PrestigeData", "UnlockedRecipeInfo", "TransferLimitData", "Bonuses", "Hideout", "RagfairInfo", "WishList", "Stats", "CheckedMagazines", "CheckedChambers", "TradersInfo" ]
     }
   ],
   "EnableForceAllTypesPublic": true,
