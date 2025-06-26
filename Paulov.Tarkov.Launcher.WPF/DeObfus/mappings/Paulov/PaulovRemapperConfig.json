@@ -339,7 +339,7 @@
     {
       "RenameClassNameTo": "TradingBackend",
       "IsClass": true,
-      "HasFields": [ "QueueStatus" ],
+      "HasProperties": [ "QueueStatus" ],
       "HasMethods": [ "TrySendCommands" ]
     },
     {

@@ -51,6 +51,9 @@ namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
             }
 #endif
 
+            if (type.HasInterfaces && type.Interfaces.Any(x => x.InterfaceType.Name == "IEffect"))
+                return;
+
             if (type is { IsNested: false, IsPublic: false } or { IsNested: true, IsNestedPublic: false }
             && type.Interfaces.All(i => i.InterfaceType.Name != "IEffect"))
             {
@@ -65,7 +68,7 @@ namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
 
             foreach (var method in type.Methods)
             {
-                //PublicizeMethod(method);
+                PublicizeMethod(type, method);
             }
 
             foreach (var property in type.Properties)
@@ -90,49 +93,35 @@ namespace Paulov.Tarkov.Deobfuscator.Lib.DeObfus
             {
                 PublicizeType(nestedType);
             }
+
         }
 
-        // Don't publicize methods that implement interfaces not belonging to the current assembly
-        // Unused - sometimes some ambiguous reference errors appear due to this, but the pros outweigh the cons at the moment
-        private static bool CanPublicizeMethod(MethodDefinition method)
-        {
-            return !method.HasOverrides && method.GetBaseMethod().Equals(method) && !method.IsVirtual;
-        }
 
-        private static void PublicizeMethod(MethodDefinition method)
+
+        private static void PublicizeMethod(TypeDefinition type, MethodDefinition method)
         {
-            if (method.IsCompilerControlled /*|| method.CustomAttributes.Any(a => a.AttributeType.Name == nameof(CompilerGeneratedAttribute))*/)
-            {
+            if (method.IsCompilerControlled)
                 return;
-            }
 
-            if (method.IsPublic) return;
-
-            // if (!CanPublicizeMethod(method)) return;
+            if (method.IsPublic)
+                return;
 
             // Workaround to not publicize a specific method so the game doesn't crash
-            if (method.Name == "TryGetScreen") return;
+            if (method.Name == "TryGetScreen")
+                return;
+
+            if (type.IsNotPublic)
+                return;
+
+            if (method.Name.StartsWith("get_", System.StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (method.Name.StartsWith("set_", System.StringComparison.OrdinalIgnoreCase))
+                return;
+
 
             method.Attributes &= ~MethodAttributes.MemberAccessMask;
             method.Attributes |= MethodAttributes.Public;
-        }
-
-        // Unused for now - publicizing fields is tricky, as it often creates MonoBehaviour loading errors and prevents scenes from loading,
-        // most notably breaking the initial game loader scene and causing the game to CTD right after starting
-        private static void PublicizeField(FieldDefinition field)
-        {
-            if (field.CustomAttributes.Any(a => a.AttributeType.Name == nameof(CompilerGeneratedAttribute))
-                // || field.HasCustomAttributes
-                || field.Name.StartsWith("delegate")
-                || field.Name.Contains("__BackingField"))
-            {
-                return;
-            }
-
-            if (field.IsPublic || field.IsCompilerControlled || field.IsLiteral || field.IsStatic || field.IsInitOnly) return;
-
-            field.Attributes &= ~FieldAttributes.FieldAccessMask;
-            field.Attributes |= FieldAttributes.Public;
         }
 
         private static List<InterfaceImplementation> GetFlattenedInterfacesRecursive(TypeDefinition type)

@@ -464,18 +464,15 @@ namespace Tarkov.Deobfuscator
 
                 try
                 {
-                    using (var fsManagedFile = new FileStream(managedFile, FileMode.Open))
+                    using var fsManagedFile = new FileStream(managedFile, FileMode.Open);
+                    using var managedFileAssembly = AssemblyDefinition.ReadAssembly(fsManagedFile, readerParameters);
+                    if (managedFileAssembly == null)
+                        continue;
+
+                    foreach (var t in managedFileAssembly.MainModule.Types)
                     {
-                        using (var managedFileAssembly = AssemblyDefinition.ReadAssembly(fsManagedFile, readerParameters))
-                        {
-                            if (managedFileAssembly != null)
-                            {
-                                foreach (var t in managedFileAssembly.MainModule.Types)
-                                {
-                                    UsedTypesByOtherDlls.Add(t.Name);
-                                }
-                            }
-                        }
+                        if (!UsedTypesByOtherDlls.Contains(t.Name))
+                            UsedTypesByOtherDlls.Add(t.Name);
                     }
                 }
                 catch (Exception ex)
@@ -484,112 +481,132 @@ namespace Tarkov.Deobfuscator
                 }
             }
 
-            using (var fsAssembly = new FileStream(assemblyPath, FileMode.Open))
+            var fileStreamAssembly = new FileStream(assemblyPath, FileMode.Open);
+            var assemblyDefinition = AssemblyDefinition.ReadAssembly(fileStreamAssembly, readerParameters);
+            if (assemblyDefinition == null)
+                return;
+
+            var assemblyTypes = assemblyDefinition.MainModule.Types.ToArray();
+#if DEBUG
+            if (assemblyTypes.Any(x => x.Name == "GClass2030"))
             {
-                using (var assemblyDefinition = AssemblyDefinition.ReadAssembly(fsAssembly, readerParameters))
+                //Debug.WriteLine("Found ActiveHealthController in Assembly");
+            }
+#endif
+
+            foreach (var fI in Directory.GetFiles(AppContext.BaseDirectory + "//DeObfus//mappings//", "*.json", SearchOption.AllDirectories).Select(x => new FileInfo(x)))
+            {
+                if (!fI.Exists)
+                    continue;
+
+                if (fI.Extension != ".json")
+                    continue;
+
+                Log($"-Deobfuscating-Run file--------------------------------------------------------------------------------------");
+                Log($"{fI.Name}");
+                RemappedClassCurrentFile = fI.Name.Replace(".json", "");
+
+                AutoRemapperConfig autoRemapperConfig = JsonConvert.DeserializeObject<AutoRemapperConfig>(File.ReadAllText(fI.FullName));
+
+                if (autoRemapperConfig.AutomaticRemapping.HasValue)
                 {
-                    if (assemblyDefinition != null)
+                    switch (autoRemapperConfig.AutomaticRemapping.Value)
                     {
-                        foreach (var fI in Directory.GetFiles(AppContext.BaseDirectory + "//DeObfus//mappings//", "*.json", SearchOption.AllDirectories).Select(x => new FileInfo(x)))
-                        {
-                            if (!fI.Exists)
-                                continue;
-
-                            if (fI.Extension != ".json")
-                                continue;
-
-                            Log($"-Deobfuscating-Run file--------------------------------------------------------------------------------------");
-                            Log($"{fI.Name}");
-                            RemappedClassCurrentFile = fI.Name.Replace(".json", "");
-
-                            AutoRemapperConfig autoRemapperConfig = JsonConvert.DeserializeObject<AutoRemapperConfig>(File.ReadAllText(fI.FullName));
-
-                            if (autoRemapperConfig.AutomaticRemapping.HasValue)
+                        case AutoRemapperConfig.AutoRemapType.Remap:
+                        case AutoRemapperConfig.AutoRemapType.Test:
+                            // If the Remapper Config is set to use Auto Configuration. Run these two passes
+                            Log("Remapping by Auto Configuration: PASS 1");
+                            RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 1);
+                            // A second pass finds unmapped GClass that use Interfaces that have been renamed
+                            Log("Remapping by Auto Configuration: PASS 2");
+                            RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 2);
+                            break;
+                        case AutoRemapperConfig.AutoRemapType.Aki:
+                            var akiAutoResults = AkiAutoRemapper.CreateAutoMapping(assemblyDefinition);
+                            foreach (var result in akiAutoResults)
                             {
-                                switch (autoRemapperConfig.AutomaticRemapping.Value)
+                                var typeToRename = assemblyDefinition.MainModule.GetType(result.Key);
+                                if (typeToRename != null)
+                                    typeToRename.Name = result.Value.OrderBy(x => x.Value).First().Key;
+                                else
                                 {
-                                    case AutoRemapperConfig.AutoRemapType.Remap:
-                                    case AutoRemapperConfig.AutoRemapType.Test:
-                                        // If the Remapper Config is set to use Auto Configuration. Run these two passes
-                                        Log("Remapping by Auto Configuration: PASS 1");
-                                        RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 1);
-                                        // A second pass finds unmapped GClass that use Interfaces that have been renamed
-                                        Log("Remapping by Auto Configuration: PASS 2");
-                                        RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 2);
-                                        // Remapping Descriptors
-                                        RemapDescriptors(assemblyDefinition, autoRemapperConfig, ref renamedClasses);
-                                        break;
-                                    case AutoRemapperConfig.AutoRemapType.Aki:
-                                        var akiAutoResults = AkiAutoRemapper.CreateAutoMapping(assemblyDefinition);
-                                        foreach (var result in akiAutoResults)
-                                        {
-                                            var typeToRename = assemblyDefinition.MainModule.GetType(result.Key);
-                                            if (typeToRename != null)
-                                                typeToRename.Name = result.Value.OrderBy(x => x.Value).First().Key;
-                                            else
-                                            {
 
-                                            }
-                                        }
-                                        break;
-                                }
-
-                            }
-
-                            // Run the defined mapping in the configuration file
-                            Log("Remapping by Defined Configuration");
-                            RemapByDefinedConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses);
-
-                            RemapByDefinedEnumConfigurations(assemblyDefinition, autoRemapperConfig);
-
-                            // Remap the all types to public dependant on Config. This has to run after defined because Aki requires it to fix certain types.
-                            if (autoRemapperConfig.EnableForceAllTypesPublic == true)
-                                Publicizer.PublicizeClasses(assemblyDefinition);
-
-                            foreach (var t in assemblyDefinition.MainModule.GetTypes())
-                            {
-                                if (t is { IsValueType: true, IsExplicitLayout: true })
-                                {
-                                    t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
-                                    t.Attributes |= ~Mono.Cecil.TypeAttributes.SequentialLayout;
                                 }
                             }
-
-                            Log(Environment.NewLine);
-
-                            GenerateCSharpFileOfRemappedClasses(RemappedClassCurrentFile);
-
-                        }
-
-                        Log(Environment.NewLine);
-
-                        assemblyDefinition.Write(assemblyPath.Replace(".dll", "-remapped.dll"));
+                            break;
                     }
+
                 }
+
+                // Run the defined mapping in the configuration file
+                Log("Remapping by Defined Configuration");
+                RemapByDefinedConfiguration(assemblyTypes, autoRemapperConfig, renamedClasses).Wait();
+
+                // Remapping Descriptors
+                RemapDescriptors(assemblyDefinition, autoRemapperConfig, ref renamedClasses);
+
+                RemapByDefinedEnumConfigurations(assemblyDefinition, autoRemapperConfig);
+
+                // Remap the all types to public dependant on Config. This has to run after defined because Aki requires it to fix certain types.
+                if (autoRemapperConfig.EnableForceAllTypesPublic == true)
+                    Publicizer.PublicizeClasses(assemblyDefinition);
+
+                FixExplicitStructs(assemblyDefinition);
+
+                Log(Environment.NewLine);
+
+                GenerateCSharpFileOfRemappedClasses(RemappedClassCurrentFile);
+
             }
 
+            Log(Environment.NewLine);
+
+            assemblyDefinition.Write(assemblyPath.Replace(".dll", "-remapped.dll"));
+            assemblyDefinition.Dispose();
+            fileStreamAssembly.Close();
+            fileStreamAssembly.Dispose();
             File.Copy(assemblyPath.Replace(".dll", "-remapped.dll"), assemblyPath, true);
             File.Delete(assemblyPath.Replace(".dll", "-remapped.dll"));
 
         }
 
-        //private void RemapAllMethodsToPublic(AssemblyDefinition assemblyDefinition, AutoRemapperConfig autoRemapperConfig)
-        //{
-        //    // ------------------------------------------------
-        //    // Auto publicize methods
-        //    if (!autoRemapperConfig.EnableForceAllMethodsPublic.HasValue || !autoRemapperConfig.EnableForceAllMethodsPublic.Value)
-        //        return;
+        private static void FixExplicitStructs(AssemblyDefinition assemblyDefinition)
+        {
+            foreach (var t in assemblyDefinition.MainModule.GetAllTypes())
+            {
+                FixExplicitStruct(t);
+            }
 
-        //    foreach (var t in assemblyDefinition.MainModule.GetTypes())
-        //    {
-        //        foreach(var m in t.GetMethods().Where(x=>x.DeclaringType == t))
-        //        {
-        //            m.IsPrivate = false;
-        //            m.IsInternalCall = false;
-        //            m.IsPublic = true;
-        //        }
-        //    }
-        //}
+            foreach (var t in assemblyDefinition.MainModule.GetAllTypes())
+            {
+            }
+        }
+
+        private static void FixExplicitStruct(TypeDefinition t)
+        {
+            if (t.HasNestedTypes)
+            {
+                foreach (var nestedType in t.NestedTypes)
+                {
+                    FixExplicitStruct(nestedType);
+                }
+            }
+            // remove explicit
+            if (t is { IsValueType: true, IsExplicitLayout: true })
+            {
+                t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
+                //t.Attributes |= ~Mono.Cecil.TypeAttributes.SequentialLayout;
+            }
+
+            // remove interface on structs...
+            if (t is { IsValueType: true })
+            {
+                t.IsInterface = false;
+            }
+
+
+
+        }
 
         private void RemapDescriptors(AssemblyDefinition assemblyDefinition, AutoRemapperConfig autoRemapperConfig, ref HashSet<string> renamedClasses)
         {
@@ -612,8 +629,8 @@ namespace Tarkov.Deobfuscator
                         var oldTypeName = rT.Name;
                         var newName = m.Name.Replace("ReadEFT", "");
 
-                        if (autoRemapperConfig.AutomaticRemapping.HasValue && autoRemapperConfig.AutomaticRemapping.Value == AutoRemapperConfig.AutoRemapType.Remap)
-                            rT.Name = newName;
+                        //if (autoRemapperConfig.AutomaticRemapping.HasValue && autoRemapperConfig.AutomaticRemapping.Value == AutoRemapperConfig.AutoRemapType.Remap)
+                        rT.Name = newName;
 
                         if (oldTypeName != newName && newName.EndsWith("Descriptor"))
                         {
@@ -621,8 +638,7 @@ namespace Tarkov.Deobfuscator
 
                             AddRemappedClassForCSFile(oldFullName, newName, true);
                             AddRemappedClassForGeneratedConfigFile(rT, newName, true);
-                            if (autoRemapperConfig.AutomaticRemapping.HasValue)
-                                LogRemap($"Remapper: Auto Remapped {oldTypeName} to {newName}", autoRemapperConfig.AutomaticRemapping.Value);
+                            LogRemap($"Remapper: Remapped {oldTypeName} to {newName}", autoRemapperConfig.AutomaticRemapping.Value);
                         }
                     }
                 }
@@ -677,95 +693,95 @@ namespace Tarkov.Deobfuscator
             }
         }
 
-        private void RemapPublicTypesMethodsAndFields(AssemblyDefinition assemblyDefinition, AutoRemapperConfig autoRemapperConfig)
-        {
-            if (autoRemapperConfig.DefinedTypesToForcePublic == null || autoRemapperConfig.DefinedTypesToForcePublic.Length == 0)
-                return;
+        //private void RemapPublicTypesMethodsAndFields(AssemblyDefinition assemblyDefinition, AutoRemapperConfig autoRemapperConfig)
+        //{
+        //    if (autoRemapperConfig.DefinedTypesToForcePublic == null || autoRemapperConfig.DefinedTypesToForcePublic.Length == 0)
+        //        return;
 
-            Log($"{nameof(RemapPublicTypesMethodsAndFields)}");
+        //    Log($"{nameof(RemapPublicTypesMethodsAndFields)}");
 
-            foreach (var ctf in autoRemapperConfig.DefinedTypesToForcePublic)
-            {
-                var foundTypes = assemblyDefinition.MainModule.GetTypes()
-                  .Where(x => x.FullName.StartsWith(ctf) || x.FullName.EndsWith(ctf));
+        //    foreach (var ctf in autoRemapperConfig.DefinedTypesToForcePublic)
+        //    {
+        //        var foundTypes = assemblyDefinition.MainModule.GetTypes()
+        //          .Where(x => x.FullName.StartsWith(ctf) || x.FullName.EndsWith(ctf));
 
-                foreach (var t in foundTypes.Where(x => x.IsClass))
-                {
-                    PublicizeType(t);
-                }
-            }
+        //        foreach (var t in foundTypes.Where(x => x.IsClass))
+        //        {
+        //            PublicizeType(t);
+        //        }
+        //    }
 
-            foreach (var ctf in autoRemapperConfig.TypesToForceAllPublicMethods)
-            {
-                ForcePublicMethodsForType(assemblyDefinition, ctf);
-            }
+        //    foreach (var ctf in autoRemapperConfig.TypesToForceAllPublicMethods)
+        //    {
+        //        ForcePublicMethodsForType(assemblyDefinition, ctf);
+        //    }
 
-            foreach (var ctf in autoRemapperConfig.TypesToForceAllPublicFieldsAndProperties)
-            {
-                var foundTypes = assemblyDefinition.MainModule.GetTypes()
-                    .Where(x => x.FullName.StartsWith(ctf, StringComparison.OrdinalIgnoreCase) || x.FullName.EndsWith(ctf));
-                foreach (var t in foundTypes)
-                {
-                    foreach (var field in t.Fields)
-                    {
-                        if (!field.IsDefinition)
-                            continue;
+        //    foreach (var ctf in autoRemapperConfig.TypesToForceAllPublicFieldsAndProperties)
+        //    {
+        //        var foundTypes = assemblyDefinition.MainModule.GetTypes()
+        //            .Where(x => x.FullName.StartsWith(ctf, StringComparison.OrdinalIgnoreCase) || x.FullName.EndsWith(ctf));
+        //        foreach (var t in foundTypes)
+        //        {
+        //            foreach (var field in t.Fields)
+        //            {
+        //                if (!field.IsDefinition)
+        //                    continue;
 
-                        if (!field.IsPublic)
-                            field.IsPublic = true;
-                    }
+        //                if (!field.IsPublic)
+        //                    field.IsPublic = true;
+        //            }
 
-                    foreach (var property in t.Properties)
-                    {
-                        if (property.GetMethod != null) PublicizeMethod(property.GetMethod);
-                        if (property.SetMethod != null) PublicizeMethod(property.SetMethod);
-                    }
+        //            foreach (var property in t.Properties)
+        //            {
+        //                if (property.GetMethod != null) PublicizeMethod(property.GetMethod);
+        //                if (property.SetMethod != null) PublicizeMethod(property.SetMethod);
+        //            }
 
-                }
-            }
+        //        }
+        //    }
 
-            if (autoRemapperConfig.TypesToConvertConstructorsToPublic != null)
-            {
-                foreach (var ctf in autoRemapperConfig.TypesToConvertConstructorsToPublic)
-                {
-                    var foundTypes = assemblyDefinition.MainModule.GetTypes()
-                        .Where(x => x.FullName.StartsWith(ctf, StringComparison.OrdinalIgnoreCase) || x.FullName.EndsWith(ctf));
-                    foreach (var t in foundTypes)
-                    {
-                        foreach (var c in t.GetConstructors())
-                        {
-                            c.IsPublic = true;
-                        }
-                    }
-                }
-            }
-        }
+        //    if (autoRemapperConfig.TypesToConvertConstructorsToPublic != null)
+        //    {
+        //        foreach (var ctf in autoRemapperConfig.TypesToConvertConstructorsToPublic)
+        //        {
+        //            var foundTypes = assemblyDefinition.MainModule.GetTypes()
+        //                .Where(x => x.FullName.StartsWith(ctf, StringComparison.OrdinalIgnoreCase) || x.FullName.EndsWith(ctf));
+        //            foreach (var t in foundTypes)
+        //            {
+        //                foreach (var c in t.GetConstructors())
+        //                {
+        //                    c.IsPublic = true;
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
 
-        private void ForcePublicMethodsForType(AssemblyDefinition assemblyDefinition, TypeDefinition t)
-        {
-            if (t.HasMethods && t.Methods.Count(x => !x.IsPublic) > 0)
-            {
-                Log($"{nameof(ForcePublicMethodsForType)}:{t.Name}:{t.Methods.Count(x => !x.IsPublic)}");
-                foreach (var m in t.Methods)
-                {
-                    PublicizeMethod(m);
-                }
+        //private void ForcePublicMethodsForType(AssemblyDefinition assemblyDefinition, TypeDefinition t)
+        //{
+        //    if (t.HasMethods && t.Methods.Count(x => !x.IsPublic) > 0)
+        //    {
+        //        Log($"{nameof(ForcePublicMethodsForType)}:{t.Name}:{t.Methods.Count(x => !x.IsPublic)}");
+        //        foreach (var m in t.Methods)
+        //        {
+        //            PublicizeMethod(m);
+        //        }
 
-            }
+        //    }
 
-            foreach (var nt in t.NestedTypes)
-            {
-                ForcePublicMethodsForType(assemblyDefinition, nt);
-            }
+        //    foreach (var nt in t.NestedTypes)
+        //    {
+        //        ForcePublicMethodsForType(assemblyDefinition, nt);
+        //    }
 
-            //foreach (var otherT in assemblyDefinition.MainModule.GetTypes())
-            //{
-            //    if (otherT.BaseType != null && otherT.BaseType.FullName != "System.Object")
-            //    {
-            //        ForcePublicMethodsForType(assemblyDefinition, otherT);
-            //    }
-            //}
-        }
+        //    //foreach (var otherT in assemblyDefinition.MainModule.GetTypes())
+        //    //{
+        //    //    if (otherT.BaseType != null && otherT.BaseType.FullName != "System.Object")
+        //    //    {
+        //    //        ForcePublicMethodsForType(assemblyDefinition, otherT);
+        //    //    }
+        //    //}
+        //}
 
         /// <summary>
         /// PublicizeMethod from SPT-Aki SPT-AssemblyTool
@@ -773,24 +789,24 @@ namespace Tarkov.Deobfuscator
         /// All credits to SPT-Aki team
         /// </summary>
         /// <param name="method"></param>
-        private void PublicizeMethod(MethodDefinition method)
-        {
-            if (method.IsCompilerControlled)
-            {
-                return;
-            }
+        //private void PublicizeMethod(MethodDefinition method)
+        //{
+        //    if (method.IsCompilerControlled)
+        //    {
+        //        return;
+        //    }
 
-            if (method.IsPublic)
-                return;
+        //    if (method.IsPublic)
+        //        return;
 
-            // if (!CanPublicizeMethod(method)) return;
+        //    // if (!CanPublicizeMethod(method)) return;
 
-            // Workaround to not publicize a specific method so the game doesn't crash
-            if (method.Name == "TryGetScreen") return;
+        //    // Workaround to not publicize a specific method so the game doesn't crash
+        //    if (method.Name == "TryGetScreen") return;
 
-            method.Attributes &= ~Mono.Cecil.MethodAttributes.MemberAccessMask;
-            method.Attributes |= Mono.Cecil.MethodAttributes.Public;
-        }
+        //    method.Attributes &= ~Mono.Cecil.MethodAttributes.MemberAccessMask;
+        //    method.Attributes |= Mono.Cecil.MethodAttributes.Public;
+        //}
 
         /// <summary>
         /// PublicizeType from SPT-Aki SPT-AssemblyTool
@@ -798,55 +814,55 @@ namespace Tarkov.Deobfuscator
         /// All credits to SPT-Aki team
         /// </summary>
         /// <param name="type"></param>
-        private void PublicizeType(TypeDefinition type)
-        {
-            if (!type.IsNested && !type.IsPublic || type.IsNested && !type.IsNestedPublic)
-            {
-                type.Attributes &= ~Mono.Cecil.TypeAttributes.VisibilityMask; // Remove all visibility mask attributes
-                type.Attributes |= type.IsNested ? Mono.Cecil.TypeAttributes.NestedPublic : Mono.Cecil.TypeAttributes.Public; // Apply a public visibility attribute
-            }
+        //private void PublicizeType(TypeDefinition type)
+        //{
+        //    if (!type.IsNested && !type.IsPublic || type.IsNested && !type.IsNestedPublic)
+        //    {
+        //        type.Attributes &= ~Mono.Cecil.TypeAttributes.VisibilityMask; // Remove all visibility mask attributes
+        //        type.Attributes |= type.IsNested ? Mono.Cecil.TypeAttributes.NestedPublic : Mono.Cecil.TypeAttributes.Public; // Apply a public visibility attribute
+        //    }
 
-            if (type.IsSealed)
-            {
-                type.Attributes &= ~Mono.Cecil.TypeAttributes.Sealed; // Remove the Sealed attribute if it exists
-            }
+        //    if (type.IsSealed)
+        //    {
+        //        type.Attributes &= ~Mono.Cecil.TypeAttributes.Sealed; // Remove the Sealed attribute if it exists
+        //    }
 
-            foreach (var method in type.Methods)
-            {
-                PublicizeMethod(method);
-            }
+        //    foreach (var method in type.Methods)
+        //    {
+        //        PublicizeMethod(method);
+        //    }
 
-            foreach (var property in type.Properties)
-            {
-                if (property.GetMethod != null) PublicizeMethod(property.GetMethod);
-                if (property.SetMethod != null) PublicizeMethod(property.SetMethod);
-            }
+        //    foreach (var property in type.Properties)
+        //    {
+        //        if (property.GetMethod != null) PublicizeMethod(property.GetMethod);
+        //        if (property.SetMethod != null) PublicizeMethod(property.SetMethod);
+        //    }
 
-            var nestedTypesToPublicize = type.NestedTypes.ToArray();
+        //    var nestedTypesToPublicize = type.NestedTypes.ToArray();
 
-            // Workaround to not publicize some nested types that cannot be patched easily and cause issues
-            if (type.Interfaces.Any(i => i.InterfaceType.Name == "IHealthController"))
-            {
-                // Specifically, any type that implements the IHealthController interface needs to not publicize any nested types that implement the IEffect interface
-                nestedTypesToPublicize = type.NestedTypes.Where(t => t.IsAbstract || t.Interfaces.All(i => i.InterfaceType.Name != "IEffect")).ToArray();
-            }
+        //    // Workaround to not publicize some nested types that cannot be patched easily and cause issues
+        //    if (type.Interfaces.Any(i => i.InterfaceType.Name == "IHealthController"))
+        //    {
+        //        // Specifically, any type that implements the IHealthController interface needs to not publicize any nested types that implement the IEffect interface
+        //        nestedTypesToPublicize = type.NestedTypes.Where(t => t.IsAbstract || t.Interfaces.All(i => i.InterfaceType.Name != "IEffect")).ToArray();
+        //    }
 
-            foreach (var nestedType in nestedTypesToPublicize)
-            {
-                PublicizeType(nestedType);
-            }
-        }
+        //    foreach (var nestedType in nestedTypesToPublicize)
+        //    {
+        //        PublicizeType(nestedType);
+        //    }
+        //}
 
-        private void ForcePublicMethodsForType(AssemblyDefinition assemblyDefinition, string ctf)
-        {
+        //private void ForcePublicMethodsForType(AssemblyDefinition assemblyDefinition, string ctf)
+        //{
 
-            var foundTypes = assemblyDefinition.MainModule.GetTypes()
-                                .Where(x => x.FullName.StartsWith(ctf, StringComparison.OrdinalIgnoreCase) || x.FullName.EndsWith(ctf));
-            foreach (var t in foundTypes)
-            {
-                ForcePublicMethodsForType(assemblyDefinition, t);
-            }
-        }
+        //    var foundTypes = assemblyDefinition.MainModule.GetTypes()
+        //                        .Where(x => x.FullName.StartsWith(ctf, StringComparison.OrdinalIgnoreCase) || x.FullName.EndsWith(ctf));
+        //    foreach (var t in foundTypes)
+        //    {
+        //        ForcePublicMethodsForType(assemblyDefinition, t);
+        //    }
+        //}
 
         private void RemapAutoDiscoverAndCountType(TypeDefinition t, Dictionary<string, int> gclassToNameCounts, TypeDefinition[] allTypes)
         {
@@ -1591,7 +1607,7 @@ TypeDefinition[] allTypes)
             }
         }
 
-        private void RemapByDefinedConfiguration(AssemblyDefinition assembly, AutoRemapperConfig autoRemapperConfig, ref HashSet<string> renamedClasses)
+        private async Task RemapByDefinedConfiguration(TypeDefinition[] assemblyTypes, AutoRemapperConfig autoRemapperConfig, HashSet<string> renamedClasses)
         {
             if (!autoRemapperConfig.EnableDefinedRemapping.HasValue || autoRemapperConfig.EnableDefinedRemapping.Value == AutoRemapperConfig.AutoRemapType.None)
                 return;
@@ -1600,13 +1616,11 @@ TypeDefinition[] allTypes)
             int countOfDefinedMappingFailed = 0;
 
             var remappableTypes
-               = assembly
-               .MainModule
-               .GetTypes()
+               = assemblyTypes
                .Where(x => !TypesToNotRemap.Select(y => y.ToLower()).Any(y => x.Name.ToLower().Contains(y)))
                .Where(x => !x.Namespace.StartsWith("System"))
                .Where(x => !x.Name.Contains("d__"))
-               .Where(x => x.CustomAttributes.Count == 0)
+               //.Where(x => x.CustomAttributes.Count == 0)
                .OrderBy(x => x.Name)
                .ToList();
 
@@ -1615,7 +1629,7 @@ TypeDefinition[] allTypes)
 
                 try
                 {
-                    var foundTypes = DiscoverTypeByMapping(config, remappableTypes);
+                    var foundTypes = await DiscoverTypeByMapping(config, remappableTypes);
 
                     if (foundTypes.Any())
                     {
@@ -1730,160 +1744,165 @@ TypeDefinition[] allTypes)
 
 
 
-        private List<TypeDefinition> DiscoverTypeByMapping(AutoRemapperInfo config, in List<TypeDefinition> findTypes)
+        private async Task<List<TypeDefinition>> DiscoverTypeByMapping(AutoRemapperInfo config, List<TypeDefinition> findTypes)
         {
-
-#if DEBUG
-            if (config.RenameClassNameTo == "EnergyControllerClass")
+            return await Task.Run(() =>
             {
+#if DEBUG
+                if (config.RenameClassNameTo == "CompleteProfileDescriptorClass")
+                {
 
-            }
+                }
+
+                var completeProfileDescriptorClassType = findTypes.FirstOrDefault(x => x.Name == "GClass2030");
+                _ = completeProfileDescriptorClassType;
 #endif
 
-            List<TypeDefinition> foundDefinition = findTypes.Where(
-               x =>
-                   (
-                       !config.MustBeGClass.HasValue
-                       || (config.MustBeGClass.Value && x.Name.StartsWith("GClass"))
-                   )
-               ).ToList();
-
-            foundDefinition = foundDefinition.Where(
-               x =>
-                   (
-                       string.IsNullOrEmpty(config.IsNestedInClass)
-                       || (!string.IsNullOrEmpty(config.IsNestedInClass) && x.FullName.Contains(config.IsNestedInClass + "+", StringComparison.OrdinalIgnoreCase))
-                       || (!string.IsNullOrEmpty(config.IsNestedInClass) && x.FullName.Contains(config.IsNestedInClass + ".", StringComparison.OrdinalIgnoreCase))
-                       || (!string.IsNullOrEmpty(config.IsNestedInClass) && x.FullName.Contains(config.IsNestedInClass + "/", StringComparison.OrdinalIgnoreCase))
-                   )
-               ).ToList();
-
-
-            // Filter Types by Inherits Class
-            foundDefinition = foundDefinition.Where(
-                x =>
-                    (
-                        config.InheritsClass == null || config.InheritsClass.Length == 0
-                        || (x.BaseType != null && x.BaseType.Name == config.InheritsClass)
-                    )
-                ).ToList();
-
-            // Filter Types by Class Name Matching
-            foundDefinition = foundDefinition.Where(
-                x =>
-                    (
-                        config.ClassName == null || config.ClassName.Length == 0 || (x.Name.Equals(config.ClassName))
-                    )
-                ).ToList();
-
-            // Filter Types by Methods
-            foundDefinition = foundDefinition.Where(x
-                    =>
-                        (config.HasMethods == null || config.HasMethods.Length == 0
-                            || (x.Methods.Where(x => !x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethods.Contains(y)) >= config.HasMethods.Length))
-
-                    ).ToList();
-            // Filter Types by Virtual Methods
-            if (config.HasMethodsVirtual != null && config.HasMethodsVirtual.Length > 0)
-            {
-                foundDefinition = foundDefinition.Where(x
-                       =>
-                         (x.Methods.Count(y => y.IsVirtual) > 0
-                            && x.Methods.Where(y => y.IsVirtual).Count(y => config.HasMethodsVirtual.Contains(y.Name)) >= config.HasMethodsVirtual.Length
-                            )
-                       ).ToList();
-            }
-            // Filter Types by Static Methods
-            foundDefinition = foundDefinition.Where(x
-                    =>
-                        (config.HasMethodsStatic == null || config.HasMethodsStatic.Length == 0
-                            || (x.Methods.Where(x => x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethodsStatic.Contains(y)) >= config.HasMethodsStatic.Length))
-
-                    ).ToList();
-
-            // Filter Types by Events
-            foundDefinition = foundDefinition.Where(x
-                   =>
-                       (config.HasEvents == null || config.HasEvents.Length == 0
-                           || (x.Events.Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasEvents.Contains(y)) >= config.HasEvents.Length))
-
+                List<TypeDefinition> foundDefinition = findTypes.Where(
+                   x =>
+                       (
+                           !config.MustBeGClass.HasValue
+                           || (config.MustBeGClass.Value && x.Name.StartsWith("GClass"))
+                       )
                    ).ToList();
 
-            // Filter Types by Field/Properties
-            foundDefinition = foundDefinition.Where(
-                x =>
+                foundDefinition = foundDefinition.Where(
+                   x =>
+                       (
+                           string.IsNullOrEmpty(config.IsNestedInClass)
+                           || (!string.IsNullOrEmpty(config.IsNestedInClass) && x.FullName.Contains(config.IsNestedInClass + "+", StringComparison.OrdinalIgnoreCase))
+                           || (!string.IsNullOrEmpty(config.IsNestedInClass) && x.FullName.Contains(config.IsNestedInClass + ".", StringComparison.OrdinalIgnoreCase))
+                           || (!string.IsNullOrEmpty(config.IsNestedInClass) && x.FullName.Contains(config.IsNestedInClass + "/", StringComparison.OrdinalIgnoreCase))
+                       )
+                   ).ToList();
+
+
+                // Filter Types by Inherits Class
+                foundDefinition = foundDefinition.Where(
+                    x =>
                         (
-                            // fields
+                            config.InheritsClass == null || config.InheritsClass.Length == 0
+                            || (x.BaseType != null && x.BaseType.Name == config.InheritsClass)
+                        )
+                    ).ToList();
+
+                // Filter Types by Class Name Matching
+                foundDefinition = foundDefinition.Where(
+                    x =>
+                        (
+                            config.ClassName == null || config.ClassName.Length == 0 || (x.Name.Equals(config.ClassName))
+                        )
+                    ).ToList();
+
+                // Filter Types by Methods
+                foundDefinition = foundDefinition.Where(x
+                        =>
+                            (config.HasMethods == null || config.HasMethods.Length == 0
+                                || (x.Methods.Where(x => !x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethods.Contains(y)) >= config.HasMethods.Length))
+
+                        ).ToList();
+                // Filter Types by Virtual Methods
+                if (config.HasMethodsVirtual != null && config.HasMethodsVirtual.Length > 0)
+                {
+                    foundDefinition = foundDefinition.Where(x
+                           =>
+                             (x.Methods.Count(y => y.IsVirtual) > 0
+                                && x.Methods.Where(y => y.IsVirtual).Count(y => config.HasMethodsVirtual.Contains(y.Name)) >= config.HasMethodsVirtual.Length
+                                )
+                           ).ToList();
+                }
+                // Filter Types by Static Methods
+                foundDefinition = foundDefinition.Where(x
+                        =>
+                            (config.HasMethodsStatic == null || config.HasMethodsStatic.Length == 0
+                                || (x.Methods.Where(x => x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethodsStatic.Contains(y)) >= config.HasMethodsStatic.Length))
+
+                        ).ToList();
+
+                // Filter Types by Events
+                foundDefinition = foundDefinition.Where(x
+                       =>
+                           (config.HasEvents == null || config.HasEvents.Length == 0
+                               || (x.Events.Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasEvents.Contains(y)) >= config.HasEvents.Length))
+
+                       ).ToList();
+
+                // Filter Types by Field/Properties
+                foundDefinition = foundDefinition.Where(
+                    x =>
                             (
-                            config.HasFields == null || config.HasFields.Length == 0
-                            || (!config.HasExactFields && x.Fields.Count(y => config.HasFields.Contains(y.Name)) >= config.HasFields.Length)
-                            || (config.HasExactFields && x.Fields.Count(y => y.IsDefinition && config.HasFields.Contains(y.Name)) == config.HasFields.Length)
-                            )
+                                // fields
+                                (
+                                config.HasFields == null || config.HasFields.Length == 0
+                                || (!config.HasExactFields && x.Fields.Count(y => config.HasFields.Contains(y.Name)) >= config.HasFields.Length)
+                                || (config.HasExactFields && x.Fields.Count(y => y.IsDefinition && config.HasFields.Contains(y.Name)) == config.HasFields.Length)
+                                )
                             ||
-                            // properties
+                            //properties
                             (
                             config.HasFields == null || config.HasFields.Length == 0
                             || (!config.HasExactFields && x.Properties.Count(y => config.HasFields.Contains(y.Name)) >= config.HasFields.Length)
                             || (config.HasExactFields && x.Properties.Count(y => y.IsDefinition && config.HasFields.Contains(y.Name)) == config.HasFields.Length)
 
                             )
-                        )).ToList();
+                            )).ToList();
 
-            foundDefinition = foundDefinition.Where(
-                x =>
-                        (
-                            // properties
+                foundDefinition = foundDefinition.Where(
+                    x =>
                             (
-                            config.HasProperties == null || config.HasProperties.Length == 0
-                            || (x.Properties.Count(y => config.HasProperties.Contains(y.Name)) >= config.HasProperties.Length)
-                            )
-                        )).ToList();
+                                // properties
+                                (
+                                config.HasProperties == null || config.HasProperties.Length == 0
+                                || (x.Properties.Count(y => config.HasProperties.Contains(y.Name)) >= config.HasProperties.Length)
+                                )
+                            )).ToList();
 
-            // Filter Types by Class
-            foundDefinition = foundDefinition.Where(
-                x =>
-                    (
-                        (!config.IsClass.HasValue || (config.IsClass.HasValue && config.IsClass.Value && ((x.IsClass || x.IsAbstract) && !x.IsEnum && !x.IsInterface)))
-                    )
-                ).ToList();
+                // Filter Types by Class
+                foundDefinition = foundDefinition.Where(
+                    x =>
+                        (
+                            (!config.IsClass.HasValue || (config.IsClass.HasValue && config.IsClass.Value && ((x.IsClass || x.IsAbstract) && !x.IsEnum && !x.IsInterface)))
+                        )
+                    ).ToList();
 
-            // Filter Types by Interface
-            foundDefinition = foundDefinition.Where(
+                // Filter Types by Interface
+                foundDefinition = foundDefinition.Where(
+                   x =>
+                       (
+                            (!config.IsInterface.HasValue || (config.IsInterface.HasValue && config.IsInterface.Value && (x.IsInterface && !x.IsEnum && !x.IsClass)))
+                       )
+                   ).ToList();
+
+                foundDefinition = foundDefinition.Where(
                x =>
                    (
-                        (!config.IsInterface.HasValue || (config.IsInterface.HasValue && config.IsInterface.Value && (x.IsInterface && !x.IsEnum && !x.IsClass)))
+                        (!config.IsStruct.HasValue || (config.IsStruct.HasValue && config.IsStruct.Value && (x.IsValueType)))
                    )
                ).ToList();
 
-            foundDefinition = foundDefinition.Where(
-           x =>
-               (
-                    (!config.IsStruct.HasValue || (config.IsStruct.HasValue && config.IsStruct.Value && (x.IsValueType)))
-               )
-           ).ToList();
+                // Filter types by Exact DeclaredMethodCount
+                foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredMethodCount.HasValue || (x.GetMethods().Count(y => y.DeclaringType == x) == config.ExactDeclaredMethodCount.Value)).ToList();
 
-            // Filter types by Exact DeclaredMethodCount
-            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredMethodCount.HasValue || (x.GetMethods().Count(y => y.DeclaringType == x) == config.ExactDeclaredMethodCount.Value)).ToList();
+                // Filter types by Exact DeclaredFieldCount
+                //foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) + x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
 
-            // Filter types by Exact DeclaredFieldCount
-            //foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) + x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
+                foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
 
-            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredFieldCount.HasValue || (x.Fields.Count(y => y.DeclaringType == x) == config.ExactDeclaredFieldCount.Value)).ToList();
+                // Filter types by Exact DeclaredPropertyCount
+                foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredPropertyCount.HasValue || (x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredPropertyCount.Value)).ToList();
 
-            // Filter types by Exact DeclaredPropertyCount
-            foundDefinition = foundDefinition.Where(x => !config.ExactDeclaredPropertyCount.HasValue || (x.Properties.Count(y => y.DeclaringType == x) == config.ExactDeclaredPropertyCount.Value)).ToList();
+                // Filter types by IsSealed
+                foundDefinition = foundDefinition.Where(x => !config.IsSealed.HasValue || (x.IsSealed == config.IsSealed)).ToList();
 
-            // Filter types by IsSealed
-            foundDefinition = foundDefinition.Where(x => !config.IsSealed.HasValue || (x.IsSealed == config.IsSealed)).ToList();
+                // Filter Types by Constructor
+                if (config.HasConstructorArgs != null)
+                    foundDefinition = foundDefinition.Where(t => t.Methods.Any(x => x.IsConstructor
+                        && x.Parameters.Count == config.HasConstructorArgs.Length
+                        && config.HasConstructorArgs.Length == config.HasConstructorArgs.Sum(arg => x.Parameters.Select(x => x.Name).Contains(arg) ? 1 : 0)
+                        )).ToList();
 
-            // Filter Types by Constructor
-            if (config.HasConstructorArgs != null)
-                foundDefinition = foundDefinition.Where(t => t.Methods.Any(x => x.IsConstructor
-                    && x.Parameters.Count == config.HasConstructorArgs.Length
-                    && config.HasConstructorArgs.Length == config.HasConstructorArgs.Sum(arg => x.Parameters.Select(x => x.Name).Contains(arg) ? 1 : 0)
-                    )).ToList();
-
-            return foundDefinition;
+                return foundDefinition;
+            });
         }
 
         public TypeDefinition CreateStubOfOldType(TypeDefinition oldType)
