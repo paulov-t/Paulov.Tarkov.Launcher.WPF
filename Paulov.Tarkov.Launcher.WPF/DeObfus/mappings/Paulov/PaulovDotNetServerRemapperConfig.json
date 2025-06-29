@@ -32,6 +32,14 @@
       "HasFields": [ "_id", "From", "To", "Date", "Profile" ],
       "ExactDeclaredFieldCount": 5,
       "IsClass": true
+    },
+    {
+      "RenameClassNameTo": "BSGNamedAttribute",
+      "HasFields": [ "Name" ],
+      "HasConstructorArgs": [ "name" ],
+      "ExactDeclaredFieldCount": 1,
+      "InheritsClass": "Attribute",
+      "IsClass": true
     }
   ]
 }
