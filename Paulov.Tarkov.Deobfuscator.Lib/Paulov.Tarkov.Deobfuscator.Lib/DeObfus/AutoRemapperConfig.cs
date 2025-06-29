@@ -8,7 +8,7 @@ namespace Tarkov.Deobfuscator
         public AutoRemapType? AutomaticRemapping { get; set; }
         public AutoRemapType? EnableDefinedRemapping { get; set; }
 
-        public AutoRemapperInfo[] DefinedRemapping { get; set; }
+        public DefinedTypeRemappingConfiguration[] DefinedRemapping { get; set; }
 
         public bool? EnableForceAllTypesPublic { get; set; }
         public string[] DefinedTypesToForcePublic { get; set; }

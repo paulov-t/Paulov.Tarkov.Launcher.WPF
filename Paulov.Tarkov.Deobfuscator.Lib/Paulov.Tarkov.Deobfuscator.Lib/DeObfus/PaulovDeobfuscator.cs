@@ -39,7 +39,7 @@ namespace Tarkov.Deobfuscator
 
         public Dictionary<string, Dictionary<string, string>> RemappedClassForCSFile { get; set; } = new();
 
-        public Dictionary<string, List<AutoRemapperInfo>> RemappedClassForGeneratedConfigFile { get; set; } = new();
+        public Dictionary<string, List<DefinedTypeRemappingConfiguration>> RemappedClassForGeneratedConfigFile { get; set; } = new();
 
 
         public StringBuilder LoggedStringBuilder { get; } = new StringBuilder();
@@ -102,7 +102,7 @@ namespace Tarkov.Deobfuscator
 
         void AddRemappedClassForGeneratedConfigFile(TypeDefinition typeDefinition, string newName, bool overwrite = false)
         {
-            AutoRemapperInfo autoRemapperInfo = new();
+            DefinedTypeRemappingConfiguration autoRemapperInfo = new();
 
             autoRemapperInfo.RenameClassNameTo = newName;
 
@@ -155,7 +155,7 @@ namespace Tarkov.Deobfuscator
                 return;
 
             if (!RemappedClassForGeneratedConfigFile.ContainsKey(typeDefinition.Namespace))
-                RemappedClassForGeneratedConfigFile.Add(typeDefinition.Namespace, new List<AutoRemapperInfo>());
+                RemappedClassForGeneratedConfigFile.Add(typeDefinition.Namespace, new List<DefinedTypeRemappingConfiguration>());
 
             RemappedClassForGeneratedConfigFile[typeDefinition.Namespace].Add(autoRemapperInfo);
         }
@@ -1744,7 +1744,7 @@ TypeDefinition[] allTypes)
 
 
 
-        private async Task<List<TypeDefinition>> DiscoverTypeByMapping(AutoRemapperInfo config, List<TypeDefinition> findTypes)
+        private async Task<List<TypeDefinition>> DiscoverTypeByMapping(DefinedTypeRemappingConfiguration config, List<TypeDefinition> findTypes)
         {
             return await Task.Run(() =>
             {

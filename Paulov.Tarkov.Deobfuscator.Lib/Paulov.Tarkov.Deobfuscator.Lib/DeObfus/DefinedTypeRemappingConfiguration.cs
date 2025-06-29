@@ -1,6 +1,6 @@
 ﻿namespace Tarkov.Deobfuscator
 {
-    public partial class AutoRemapperInfo
+    public partial class DefinedTypeRemappingConfiguration
     {
         public string RenameClassNameTo { get; set; }
         public string ClassName { get; set; }
