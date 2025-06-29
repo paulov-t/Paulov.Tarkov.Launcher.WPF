@@ -132,23 +132,6 @@ namespace Paulov.Launcher.Services
             return (Directory.Exists(bepinexCorePath) && Directory.Exists(bepinexPluginsPath) && File.Exists(bepinexWinHttpDLL));
         }
 
-        //public string CompiledAkiModulesUrl => "aHR0cHM6Ly9kcC1ldS5zaXRjb29wLm9yZy9ha2ktY3VzdG9tLnppcA==";
-
-        public async Task InstallAkiPack(string installDirectory)
-        {
-            //var httpUrlB64 = CompiledAkiModulesUrl;
-            //var httpUrlPlain = Encoding.UTF8.GetString(Convert.FromBase64String(httpUrlB64));
-
-            //using var httpClient = new HttpClient();
-            //var bytes = await httpClient.GetByteArrayAsync(httpUrlPlain);
-            //if (File.Exists("AkiModules.zip"))
-            //    File.Delete("AkiModules.zip");
-
-            //await File.WriteAllBytesAsync("AkiModules.zip", bytes);
-
-            //InstallZipPayloadToGameDirectory(installDirectory, "AkiModules.zip");
-        }
-
         public void InstallZipPayloadToGameDirectory(string installDirectory, string zipPath)
         {
             using var fsZip = new FileStream(zipPath, FileMode.Open);
@@ -166,7 +149,6 @@ namespace Paulov.Launcher.Services
 
         public async Task InstallBepInEx(string pathToInstallDirectory)
         {
-            //var httpUrlB64 = CompiledAkiModulesUrl;
             var httpUrlPlain = "https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_win_x64_5.4.23.2.zip";
 
             using var httpClient = new HttpClient();
