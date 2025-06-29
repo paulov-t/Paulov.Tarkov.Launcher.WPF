@@ -55,10 +55,10 @@
       "RenameClassNameTo": "ExfiltrationControllerClass",
       "HasMethods": [ "AssignScavIdToPoint" ]
     },
-    {
-      "RenameClassNameTo": "GameServerClass",
-      "HasFields": [ "Ping" ]
-    },
+    //{
+    //  "RenameClassNameTo": "GameServerClass",
+    //  "HasFields": [ "Ping" ]
+    //},
     {
       "RenameClassNameTo": "QuestItemClass",
       "HasFields": [ "parentId", "_tpl", "_id" ],
