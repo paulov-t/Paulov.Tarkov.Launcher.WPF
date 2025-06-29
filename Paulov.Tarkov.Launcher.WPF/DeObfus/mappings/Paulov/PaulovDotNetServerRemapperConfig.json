@@ -1,0 +1,37 @@
+{
+  // "None"/"Test" - create .cs of remappings /"Remap" - do the remap to the Assembly the Automatic System of Remapping via Code
+  "AutomaticRemapping": "None",
+  // Enable/Disable the Defined Mapping list of Remapping - The defined list runs after the Automatic Remap
+  "EnableDefinedRemapping": "Remap",
+  "DefinedRemapping": [
+    {
+      "RenameClassNameTo": "IHandbookCategorization",
+      "HasMethods": [ "IsChildOf", "IsCategory" ],
+      "ExactDeclaredMethodCount": 2,
+      "IsInterface": true
+    },
+    {
+      "RenameClassNameTo": "SeasonsSettings",
+      "HasMethods": [ "Serialize", "Deserialize" ],
+      "HasFields": [ "SpringSnowFactor" ],
+      "IsClass": true
+    },
+    {
+      "RenameClassNameTo": "InsuredItemDescriptor",
+      "HasFields": [ "TraderId", "ItemId" ],
+      "ExactDeclaredFieldCount": 2,
+      "IsClass": true
+    },
+    {
+      "RenameClassNameTo": "HideoutDescriptor",
+      "HasFields": [ "Production", "Improvements", "Areas", "RawSeed", "GlobalCustomization", "MannequinPoses" ],
+      "IsClass": true
+    },
+    {
+      "RenameClassNameTo": "ChatFromAndTo",
+      "HasFields": [ "_id", "From", "To", "Date", "Profile" ],
+      "ExactDeclaredFieldCount": 5,
+      "IsClass": true
+    }
+  ]
+}

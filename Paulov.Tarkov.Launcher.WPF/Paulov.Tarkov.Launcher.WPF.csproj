@@ -399,6 +399,12 @@
     <None Update="AddNewServerDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
     </None>
+    <None Update="DeObfus\mappings\Paulov\PaulovAutoRemapperConfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="DeObfus\mappings\Paulov\PaulovDotNetServerRemapperConfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="DeObfus\mappings\Spt\SptRemapperConfig.EverythingElse.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
