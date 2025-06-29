@@ -1,23 +1,18 @@
-﻿using FolderBrowserEx;
-using MahApps.Metro.Controls;
+﻿using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using Newtonsoft.Json;
-using Octokit;
 using Paulov.Launcher.Windows;
 using Paulov.Tarkov.Deobfuscator.Lib;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
-using System.Windows.Media;
 using Tarkov.Deobfuscator;
 
 namespace Paulov.Launcher
@@ -27,12 +22,6 @@ namespace Paulov.Launcher
     /// </summary>
     public partial class MainWindow : MetroWindow, ILogger
     {
-        public ImageSource SITIcon { get; set; }
-        public ImageSource ArenaIcon { get; set; }
-        public ImageSource BackgroundImage { get; set; }
-
-        //public LauncherConfig Config { get; } = LauncherConfig.Instance;
-
         public static readonly DependencyProperty ConfigProperty = DependencyProperty.Register("Config", typeof(LauncherConfig), typeof(MainWindow), new FrameworkPropertyMetadata(null));
         public LauncherConfig Config
         {
@@ -46,69 +35,6 @@ namespace Paulov.Launcher
             }
             set => SetValue(ConfigProperty, value);
         }
-
-        #region Check Installs
-        public bool HasEFTInstalled { get; } = OfficialGameInstallChecker.FindOfficialGame(RegistryManager.EFTGamePathEXE) != null;
-        public bool HasArenaInstalled { get; } = ArenaGameFinder.FindOfficialGame() != null;
-
-        #endregion
-
-        #region ReleasesBindings
-
-        public static readonly DependencyProperty SITReleasesProperty = DependencyProperty.Register("SITReleases", typeof(ObservableCollection<Release>), typeof(MainWindow), new FrameworkPropertyMetadata(null));
-        public ObservableCollection<Release> SITReleases
-        {
-            get => (ObservableCollection<Release>)GetValue(SITReleasesProperty);
-            set => SetValue(SITReleasesProperty, value);
-        }
-
-        public static readonly DependencyProperty SelectedSITReleaseProperty = DependencyProperty.Register("SelectedSITRelease", typeof(Release), typeof(MainWindow), new FrameworkPropertyMetadata(null));
-        public Release SelectedSITRelease
-        {
-            get => (Release)GetValue(SelectedSITReleaseProperty);
-            set => SetValue(SelectedSITReleaseProperty, value);
-        }
-
-        public static readonly DependencyProperty ArenaReleasesProperty = DependencyProperty.Register("ArenaReleases", typeof(ObservableCollection<Release>), typeof(MainWindow), new FrameworkPropertyMetadata(null));
-        public ObservableCollection<Release> ArenaReleases
-        {
-            get => (ObservableCollection<Release>)GetValue(ArenaReleasesProperty);
-            set => SetValue(ArenaReleasesProperty, value);
-        }
-
-        public static readonly DependencyProperty SelectedArenaReleaseProperty = DependencyProperty.Register("SelectedArenaRelease", typeof(Release), typeof(MainWindow), new FrameworkPropertyMetadata(null));
-        public Release SelectedArenaRelease
-        {
-            get => (Release)GetValue(SelectedArenaReleaseProperty);
-            set => SetValue(SelectedArenaReleaseProperty, value);
-        }
-
-        public bool EFTInstalled => Config != null && !string.IsNullOrEmpty(Config.InstallLocationEFT) && new FileInfo(Config.InstallLocationEFT).Exists;
-
-        public Visibility EFTInstalledVisibility => EFTInstalled ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility EFTNotInstalledVisibility => !EFTInstalled ? Visibility.Visible : Visibility.Collapsed;
-
-
-        public string EFTGameVersion => EFTInstalled
-                ? FileVersionInfo.GetVersionInfo(Config.InstallLocationEFT).ProductVersion.Split('-')[0]
-                + "." + FileVersionInfo.GetVersionInfo(Config.InstallLocationEFT).ProductVersion.Split('-')[1]
-                 : "";
-
-        public static readonly DependencyProperty AutoInstallSITProperty = DependencyProperty.Register("AutoInstallSIT", typeof(bool), typeof(MainWindow), new FrameworkPropertyMetadata(null));
-        public bool AutoInstallSIT
-        {
-            get
-            {
-                GetValue(AutoInstallSITProperty);
-                return Config.AutomaticallyInstallSIT;
-            }
-            set
-            {
-                SetValue(AutoInstallSITProperty, value);
-                Config.AutomaticallyInstallSIT = value;
-            }
-        }
-
 
         public enum ELaunchButtonState : short
         {
@@ -169,25 +95,6 @@ namespace Paulov.Launcher
             }
         }
 
-
-
-        public string GetEFTSITPluginPath()
-        {
-            if (Config == null)
-                return null;
-
-            if (string.IsNullOrEmpty(Config.InstallLocationEFT))
-                return null;
-
-            return Path.Combine(GetBepInExPluginsPathInInstall(Config.InstallLocationEFT), "StayInTarkov.dll");
-        }
-
-        public string EFTSITVersion => File.Exists(GetEFTSITPluginPath())
-               ? FileVersionInfo.GetVersionInfo(GetEFTSITPluginPath()).ProductVersion
-                : "";
-
-        #endregion
-
         public MainWindow()
         {
             InitializeComponent();
@@ -207,14 +114,6 @@ namespace Paulov.Launcher
 
         private void MainWindow_ContentRendered(object sender, EventArgs e)
         {
-            //await GetLatestSITRelease();
-
-            //if (Config.AutoCheckForOfficialUpdates)
-            //{
-            //    NewInstallFromOfficial();
-            //    await UpdateInstallFromOfficial();
-            //}
-
             this.DataContext = this;
 
             if (!Config.InstallInstances.Any())
@@ -224,22 +123,6 @@ namespace Paulov.Launcher
             }
         }
 
-
-
-        private async Task GetLatestSITRelease()
-        {
-            try
-            {
-                var github = new GitHubClient(new ProductHeaderValue("SIT-Launcher"));
-                var user = await github.User.Get("paulov-t");
-                SITReleases = new ObservableCollection<Release>(await github.Repository.Release.GetAll("stayintarkov", "StayInTarkov.Client", new ApiOptions() { }));
-                SelectedSITRelease = SITReleases.OrderByDescending(x => x.CreatedAt).First();
-            }
-            catch (Exception)
-            {
-
-            }
-        }
 
         public static FlowDocument HtmlToFlowDocument(string text)
         {
@@ -252,179 +135,11 @@ namespace Paulov.Launcher
             return document;
         }
 
-        private async Task UpdateInstallFromOfficial()
-        {
-            if (!IsGameUpdateAvailable())
-                return;
-
-            MessageBoxResult messageBoxResult = MessageBox.Show("New update of Official EFT detected. Would you like to update now? (BEWARE, THIS COULD BREAK SIT!)", "EFT Update Detected", MessageBoxButton.YesNo);
-            if (messageBoxResult == MessageBoxResult.Yes)
-            {
-                var exeLocation = string.Empty;
-                exeLocation = await CopyInstallFromOfficial(
-                    OfficialGameInstallChecker.FindOfficialGame(RegistryManager.EFTGamePathEXE)
-                    , Directory.GetParent(Config.InstallLocationEFT).FullName
-                    , exeLocation);
-            }
-
-        }
-
-        private bool IsGameUpdateAvailable()
-        {
-            if (string.IsNullOrEmpty(Config.InstallLocationEFT))
-                return false;
-
-            if (OfficialGameInstallChecker.FindOfficialGame(RegistryManager.EFTGamePathEXE) == null)
-            {
-                try
-                {
-                    throw new Exception("Official EFT has not been found!");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message);
-                    return false;
-                }
-            }
-
-            // if the original assembly-csharp doesnt exist, false
-            var officialAssemblyCSharpPath = new FileInfo(Path.Combine(Directory.GetParent(OfficialGameInstallChecker.FindOfficialGame(RegistryManager.EFTGamePathEXE).FullName).FullName, "EscapeFromTarkov_Data", "Managed", "Assembly-CSharp.dll"));
-            if (!officialAssemblyCSharpPath.Exists)
-                return false;
-
-            // if the offline assembly-csharp doesn't exist, run update
-            var offlineAssemblyCSharpPath = new FileInfo(Path.Combine(Directory.GetParent(Config.InstallLocationEFT).FullName, "EscapeFromTarkov_Data", "Managed", "Assembly-CSharp.dll"));
-            if (!offlineAssemblyCSharpPath.Exists)
-                return true;
-
-            var officialIsUpdated = officialAssemblyCSharpPath.CreationTime > offlineAssemblyCSharpPath.LastWriteTime;
-            return officialIsUpdated;
-        }
-
-        private async void NewInstallFromOfficial()
-        {
-            // Brand new setup of SIT
-            if (string.IsNullOrEmpty(Config.InstallLocationEFT)
-
-                // Config Install Location exists, but the install location looks suspiciuosly like a direct copy of Live
-                // Check BepInEx
-                || !DoesBepInExExistInInstall(Config.InstallLocationEFT)
-                // Check SIT.Core
-                || !IsSITCoreInstalled(Config.InstallLocationEFT)
-
-
-                )
-            {
-                if (MessageBox.Show("No OFFLINE install found. Would you like to install now?", "Install", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                {
-                    var fiOfficialGame = OfficialGameInstallChecker.FindOfficialGame(RegistryManager.EFTGamePathEXE);
-                    if (fiOfficialGame == null)
-                        return;
-
-                    FolderBrowserDialog folderBrowserDialogOffline = new();
-                    folderBrowserDialogOffline.Title = "Select New Offline EFT Install Folder";
-                    if (folderBrowserDialogOffline.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                    {
-                        if (fiOfficialGame.DirectoryName == folderBrowserDialogOffline.SelectedFolder)
-                        {
-                            MessageBox.Show("You cannot install OFFLINE into your Official Folder!", "Install");
-                            NewInstallFromOfficial();
-                            return;
-                        }
-
-                        var exeLocation = string.Empty;
-                        exeLocation = await CopyInstallFromOfficial(fiOfficialGame, folderBrowserDialogOffline.SelectedFolder, exeLocation);
-                    }
-                }
-            }
-        }
-
-        private async Task<string> CopyInstallFromOfficial(FileInfo fiOfficialGame, string offlineFolder, string exeLocation)
-        {
-            var officialFiles = Directory
-                                        .GetFiles(fiOfficialGame.DirectoryName, "*", new EnumerationOptions() { RecurseSubdirectories = true })
-                                        .Select(x => new FileInfo(x));
-
-            var countOfOfficialFiles = officialFiles.Count();
-            var currentNumber = 1;
-            await loadingDialog.UpdateAsync("Installing", $"Found {countOfOfficialFiles} files to Copy", 0);
-            foreach (var file in officialFiles)
-            {
-                try
-                {
-                    var percent = Math.Round((((decimal)currentNumber / (decimal)countOfOfficialFiles) * 100));
-                    await loadingDialog.UpdateAsync("Installing", $"Copying file {currentNumber}/{countOfOfficialFiles} ({percent}%): {file.Name}", (int)percent);
-                    var newFilePath = file.FullName.Replace(fiOfficialGame.DirectoryName, offlineFolder);
-                    Directory.CreateDirectory(Directory.GetParent(newFilePath).FullName);
-
-                    var fiNewFile = new FileInfo(newFilePath);
-                    if (!fiNewFile.Exists || fiNewFile.LastWriteTime < file.LastWriteTime)
-                    {
-                        using (FileStream SourceStream = File.Open(file.FullName, System.IO.FileMode.Open))
-                        {
-                            using (FileStream DestinationStream = !fiNewFile.Exists ? File.Create(newFilePath) : File.Open(newFilePath, System.IO.FileMode.Open))
-                            {
-                                await SourceStream.CopyToAsync(DestinationStream);
-                            }
-                        }
-                    }
-
-                    if (newFilePath.Contains("EscapeFromTarkov.exe"))
-                        exeLocation = newFilePath;
-
-                }
-                catch
-                {
-
-                }
-                currentNumber++;
-            }
-
-            Config.InstallLocationEFT = offlineFolder + "\\EscapeFromTarkov.exe";
-            this.DataContext = null;
-            this.DataContext = this;
-
-            // ----------------------------------------------------------------------------------------
-            // Delete Deobfuscated and Backup Assembly CSharps
-            await loadingDialog.UpdateAsync("Installing", $"Deleting old Assembly-CSharp backups");
-            var offlineFolderFiles = Directory
-                                        .GetFiles(offlineFolder, "Assembly-CSharp*", new EnumerationOptions() { RecurseSubdirectories = true })
-                                        .Select(x => new FileInfo(x));
-            foreach (var file in offlineFolderFiles)
-            {
-                if (file.FullName.EndsWith(".backup") || file.FullName.EndsWith("-cleaned.dll"))
-                    file.Delete();
-            }
-            //
-            // ----------------------------------------------------------------------------------------
-
-            await loadingDialog.UpdateAsync("Installing", $"Cleaning EFT OFFLINE Directory");
-            CleanupDirectory(exeLocation);
-
-            await loadingDialog.UpdateAsync("Installing", $"Installing BepInEx");
-            await DownloadAndInstallBepInEx5(exeLocation);
-
-            //await loadingDialog.UpdateAsync("Installing", $"Deobfuscating Assembly-CSharp. This can take some time...");
-            //await Deobfuscate(exeLocation);
-
-            await loadingDialog.UpdateAsync("Installing", $"Installing StayInTarkov.Client");
-            await DownloadAndInstallSIT(exeLocation);
-
-
-
-            UpdateButtonText(null);
-
-            await loadingDialog.UpdateAsync(null, null);
-            return exeLocation;
-        }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             Config.Save();
         }
-
-
-
 
         private void btnAddNewServer_Click(object sender, RoutedEventArgs e)
         {
@@ -521,45 +236,6 @@ namespace Paulov.Launcher
             return null;
         }
 
-        private async void btnLaunchGame_Click(object sender, RoutedEventArgs e)
-        {
-            Config.Save();
-
-            var returnData = LoginToServer();
-
-            if (string.IsNullOrEmpty(returnData))
-            {
-                var messageBoxResult = MessageBox.Show("Something went wrong. Maybe the server hasn't been started? Check the logs.", "Account");
-                return;
-            }
-
-            // If all good, launch game with AID
-            if (!string.IsNullOrEmpty(returnData) && returnData != "FAILED" && returnData != "ALREADY_IN_USE")
-            {
-                BrowseForOfflineGame();
-
-                // Check that above actually did something
-                if (!string.IsNullOrEmpty(Config.InstallLocationEFT) && Config.InstallLocationEFT.EndsWith(".exe"))
-                {
-                    await DownloadInstallAndStartGame(returnData);
-                }
-
-            }
-            else if (returnData == "ALREADY_IN_USE")
-            {
-                var messageBoxResult = MessageBox.Show("The username/email has already been created, please use another one.", "Account");
-            }
-            else if (returnData.Length != 24) // NewId or something
-            {
-                var messageBoxResult = MessageBox.Show("Something went wrong. Maybe the server hasn't been started? Check the logs.", "Account");
-            }
-
-            if (Config.CloseLauncherAfterLaunch)
-            {
-                App.Current.Shutdown();
-            }
-        }
-
         private void BrowseForOfflineGame()
         {
             if (string.IsNullOrEmpty(Config.InstallLocationEFT) || !File.Exists(Config.InstallLocationEFT))
@@ -595,53 +271,6 @@ namespace Paulov.Launcher
                 }
             }
         }
-
-        private async Task DownloadInstallAndStartGame(string sessionId)
-        {
-
-
-            //btnLaunchGame.IsEnabled = false;
-
-            var installLocation = Config.InstallLocationEFT;
-            if (!await DownloadAndInstallBepInEx5(installLocation))
-            {
-                MessageBox.Show("Install and Start aborted");
-                return;
-            }
-
-            if (!await DownloadAndInstallSIT(installLocation))
-            {
-                MessageBox.Show("Install and Start aborted");
-                return;
-            }
-
-            // Copy Aki Dlls for support
-            if (!DownloadAndInstallAki(installLocation))
-            {
-                MessageBox.Show("Install and Start aborted");
-                return;
-            }
-
-
-            // Deobfuscate Assembly-CSharp
-            if (Config.AutomaticallyDeobfuscateDlls
-                && NeedsDeobfuscation(installLocation))
-            {
-                MessageBox.Show("Your game has not been deobfuscated and no client mods have been installed to allow OFFLINE play. Please install SIT or manually deobfuscate using \"Tools->Deobfuscate And Remap Assembly\"");
-                //if (await Deobfuscate(installLocation))
-                //{
-                //    StartGame(sessionId, installLocation);
-                //}
-                UpdateButtonText(null);
-                //btnLaunchGame.IsEnabled = true;
-            }
-            else
-            {
-                // Launch game
-                StartGame(sessionId, installLocation);
-            }
-        }
-
         private async Task DownloadInstallAndStartArena(string sessionId)
         {
             //btnLaunchGame.IsEnabled = false;
@@ -844,137 +473,6 @@ namespace Paulov.Launcher
             return File.Exists(bepinexPluginsPath + "StayInTarkov.dll");
         }
 
-        private async Task<bool> DownloadAndInstallSIT(string exeLocation, bool forceInstall = false)
-        {
-            if (!Config.AutomaticallyInstallSIT && IsSITCoreInstalled(exeLocation))
-                return true;
-
-            await loadingDialog.UpdateAsync("Installing SIT", $"Disovering files");
-
-            var baseGamePath = Directory.GetParent(exeLocation).FullName;
-            var bepinexPath = exeLocation.Replace("EscapeFromTarkov.exe", "");
-            bepinexPath += "BepInEx";
-
-            var bepinexPluginsPath = Path.Combine(bepinexPath, "plugins");
-            if (!Directory.Exists(bepinexPluginsPath))
-                return false;
-
-            try
-            {
-
-                Release latestCore = SelectedSITRelease;
-
-                var clientModsDeliveryPath = Path.Combine(App.ApplicationDirectory, "ClientMods");
-                Directory.CreateDirectory(clientModsDeliveryPath);
-
-                // Checks the current downloaded version and only downloads if needed
-                if (File.Exists("CurrentSITVersion.txt"))
-                {
-                    var currentSITVersionText = File.ReadAllText("CurrentSITVersion.txt");
-                }
-                if (File.Exists("CurrentSITVersion.txt") && File.ReadAllText("CurrentSITVersion.txt") == latestCore.Name && !Config.ForceInstallLatestSIT)
-                {
-                    await loadingDialog.UpdateAsync(null, null);
-                    return true;
-                }
-
-                var maxSize = 90000000;
-                var allAssets = latestCore
-                    .Assets
-                    .Where(x => x.Size < maxSize)
-                    .OrderByDescending(x => x.CreatedAt).DistinctBy(x => x.Name);
-
-                await loadingDialog.UpdateAsync("Installing SIT", $"Downloading files");
-
-                var allAssetsCount = allAssets.Count();
-                var assetIndex = 0;
-
-                var httpClient = new HttpClient();
-                httpClient.Timeout = new TimeSpan(0, 5, 0);
-
-                foreach (var asset in allAssets)
-                {
-                    var response = await httpClient.GetAsync(asset.BrowserDownloadUrl, HttpCompletionOption.ResponseContentRead);
-                    if (response != null)
-                    {
-                        var ms = new MemoryStream();
-                        await response.Content.CopyToAsync(ms);
-
-                        var deliveryPath = Path.Combine(clientModsDeliveryPath, asset.Name);
-                        var fiDelivery = new FileInfo(deliveryPath);
-                        await File.WriteAllBytesAsync(deliveryPath, ms.ToArray());
-                    }
-                    assetIndex++;
-                    await loadingDialog.UpdateAsync("Installing SIT", $"Downloading files ({assetIndex}/{allAssetsCount})");
-                }
-
-
-                await loadingDialog.UpdateAsync("Installing SIT", $"Installing files");
-
-                UpdateButtonText("Installing SIT");
-
-                using (var z = ZipFile.OpenRead(Path.Combine(App.ApplicationDirectory, "ClientMods", "StayInTarkov-Release.zip")))
-                {
-                    foreach (var ent in z.Entries.Where(x => !string.IsNullOrEmpty(x.Name)))
-                    {
-                        ent.ExtractToFile(Path.Combine(App.ApplicationDirectory, "ClientMods", ent.Name), true);
-                    }
-                }
-                File.Delete(Path.Combine(App.ApplicationDirectory, "ClientMods", "StayInTarkov-Release.zip"));
-
-                foreach (var clientFile in Directory.GetFiles(Path.Combine(App.ApplicationDirectory, "ClientMods")).Where(x => !x.Contains("DONOTDELETE")))
-                {
-                    if (clientFile.Contains("Assembly-CSharp"))
-                    {
-                        var assemblyLocation = Path.Combine(Directory.GetParent(exeLocation).FullName, "EscapeFromTarkov_Data", "Managed", "Assembly-CSharp.dll");
-
-                        // Backup the Assembly-CSharp and place the newest clean one
-                        if (!File.Exists(assemblyLocation + ".backup"))
-                        {
-                            File.Copy(assemblyLocation, assemblyLocation + ".backup");
-                            File.Copy(clientFile, assemblyLocation, true);
-                        }
-
-                        if (Config.ForceInstallLatestSIT)
-                            File.Copy(clientFile, assemblyLocation, true);
-                    }
-                    else
-                    {
-                        bool shouldCopy = false;
-                        var fiClientMod = new FileInfo(clientFile);
-                        var fiExistingMod = new FileInfo(bepinexPluginsPath + "\\" + fiClientMod.Name);
-                        if (fiExistingMod.Exists)
-                        {
-                            var createdDateOfDownloadedAsset = allAssets.First().CreatedAt;
-                            shouldCopy = (fiExistingMod.LastWriteTime < createdDateOfDownloadedAsset);
-                        }
-                        else
-                            shouldCopy = true;
-
-                        if (Config.ForceInstallLatestSIT)
-                            shouldCopy = true;
-
-                        if (shouldCopy)
-                            File.Copy(clientFile, bepinexPluginsPath + "\\" + fiClientMod.Name, true);
-                    }
-                }
-
-                File.WriteAllText("CurrentSITVersion.txt", latestCore.Name);
-
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Unable to download and install SIT.{Environment.NewLine} {ex.Message}", "Error");
-                return false;
-            }
-
-            await loadingDialog.UpdateAsync(null, null);
-
-            return true;
-
-
-        }
-
         private string GetBepInExPath(string exeLocation)
         {
             var baseGamePath = Directory.GetParent(exeLocation).FullName;
@@ -1111,59 +609,6 @@ namespace Paulov.Launcher
             }
         }
 
-
-
-
-
-        private void btnDeobfuscateBrowse_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new();
-            openFileDialog.Filter = "DLL (Assembly-CSharp)|Assembly-CSharp*.dll;";
-            if (openFileDialog.ShowDialog() == true)
-            {
-                new PaulovDeobfuscator().DeobfuscateAssembly(openFileDialog.FileName, Directory.GetParent(openFileDialog.FileName).FullName, out var resultsRenamedClasses, doRemapping: true);
-            }
-        }
-
-
-
-        private void btnServerCommand_Click(object sender, RoutedEventArgs e)
-        {
-            FolderBrowserEx.FolderBrowserDialog folderBrowserDialog = new();
-            if (folderBrowserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                Process p = new();
-                p.StartInfo.UseShellExecute = false;
-                p.StartInfo.RedirectStandardOutput = true;
-                p.StartInfo.RedirectStandardError = true;
-                p.StartInfo.RedirectStandardInput = true;
-                p.StartInfo.FileName = "CMD.exe";
-                p.StartInfo.Arguments = @"\C npm i";
-                p.OutputDataReceived += process_OutputDataReceived;
-                p.Start();
-                p.WaitForExit();
-
-
-                //p.StartInfo.FileName = @"c:\node\node.exe"; //Path to node installed folder****
-                //string argument = @"\\ bundle\main.js";
-                //p.StartInfo.Arguments = @argument;
-                //p.Start();
-
-                //Process.Start("CMD.exe", @"/C npm i");
-                //Process.Start("CMD.exe", @"/C npm run run:server");
-
-            }
-        }
-
-        private void process_OutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-
-
-            });
-        }
-
         private void btnChangeOfflineInstallPath_Click(object sender, RoutedEventArgs e)
         {
             Config.InstallLocationEFT = null;
@@ -1181,80 +626,6 @@ namespace Paulov.Launcher
                 UseShellExecute = true,
             };
             System.Diagnostics.Process.Start(sInfo);
-        }
-
-        private async void btnLaunchArena_Click(object sender, RoutedEventArgs e)
-        {
-            Config.Save();
-
-            var returnData = LoginToServer();
-
-            if (string.IsNullOrEmpty(returnData))
-            {
-                var messageBoxResult = MessageBox.Show("Something went wrong. Maybe the server hasn't been started? Check the logs.", "Account");
-                return;
-            }
-
-            // If all good, launch game with AID
-            if (!string.IsNullOrEmpty(returnData) && returnData != "FAILED" && returnData != "ALREADY_IN_USE")
-            {
-                BrowseForOfflineGameArena();
-
-                // Check that above actually did something
-                if (!string.IsNullOrEmpty(Config.InstallLocationArena) && Config.InstallLocationArena.EndsWith(".exe"))
-                {
-                    await DownloadInstallAndStartArena(returnData);
-                }
-
-            }
-            else if (returnData == "ALREADY_IN_USE")
-            {
-                var messageBoxResult = MessageBox.Show("The username/email has already been created, please use another one.", "Account");
-            }
-            else if (returnData.Length != 24) // NewId or something
-            {
-                var messageBoxResult = MessageBox.Show("Something went wrong. Maybe the server hasn't been started? Check the logs.", "Account");
-            }
-
-            if (Config.CloseLauncherAfterLaunch)
-            {
-                App.Current.Shutdown();
-            }
-        }
-
-        private async void btnInstallGameCopy_Click(object sender, RoutedEventArgs e)
-        {
-            if (MessageBox.Show("No OFFLINE install found. Would you like to install now?", "Install", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-            {
-                var fiOfficialGame = OfficialGameInstallChecker.FindOfficialGame(RegistryManager.EFTGamePathEXE);
-                if (fiOfficialGame == null)
-                    return;
-
-                FolderBrowserDialog folderBrowserDialogOffline = new();
-                folderBrowserDialogOffline.Title = "Select New Offline EFT Install Folder";
-                if (folderBrowserDialogOffline.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                {
-                    if (fiOfficialGame.DirectoryName == folderBrowserDialogOffline.SelectedFolder)
-                    {
-                        MessageBox.Show("You cannot install OFFLINE into your Official Folder!", "Install");
-                        NewInstallFromOfficial();
-                        return;
-                    }
-
-                    var exeLocation = string.Empty;
-                    exeLocation = await CopyInstallFromOfficial(fiOfficialGame, folderBrowserDialogOffline.SelectedFolder, exeLocation);
-                }
-            }
-        }
-
-        private async void btnCheckForOfficialUpdate_Click(object sender, RoutedEventArgs e)
-        {
-            await UpdateInstallFromOfficial();
-        }
-
-        private void btnSwitchEFTFolder_Click()
-        {
-
         }
 
         private void btnNewInstall_Click(object sender, RoutedEventArgs e)
