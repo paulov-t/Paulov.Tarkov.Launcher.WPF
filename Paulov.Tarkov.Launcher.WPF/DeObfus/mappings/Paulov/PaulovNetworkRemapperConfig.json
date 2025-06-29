@@ -17,6 +17,30 @@
       "HasMethods": [ "Connect", "Shutdown", "OnConnect", "OnData", "OnDisconnect" ],
       "IsClass": true,
       "MustBeGClass": true
+    },
+    {
+      "RenameClassNameTo": "BSGNetworkWriterExtensions",
+      "IsClass": true,
+      "MustBeGClass": true,
+      "HasMethodsStatic": [ "WriteByte", "WriteSByte", "WriteShort", "WriteShortNullable" ]
+    },
+    {
+      "RenameClassNameTo": "BSGNetworkReader",
+      "IsClass": true,
+      "MustBeGClass": true,
+      "HasMethods": [ "ReadByte", "ReadBytes" ]
+    },
+    {
+      "RenameClassNameTo": "BSGNetworkReaderExtensions",
+      "IsClass": true,
+      "IsAbstract": true,
+      "MustBeGClass": true,
+      "HasMethodsStatic": [ "ReadByte", "ReadBytes", "ReadSByte", "ReadSByteNullable" ]
+    },
+    {
+      "RenameClassNameTo": "BSGNetworkConversionHelpers",
+      "IsClass": true,
+      "HasMethodsStatic": [ "ScaleByteToFloat" ]
     }
   ],
   "AutoRemapDescriptors": true
