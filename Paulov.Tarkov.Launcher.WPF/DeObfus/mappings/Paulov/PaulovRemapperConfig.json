@@ -284,37 +284,6 @@
       "HasMethods": [ "SucceedAmmoManipulationHandler", "Dispose", "vmethod_0" ],
       "ConvertInternalMethodsToPublic": true
     },
-    // Was coming out twice, needs better remap
-    //{
-    //  "RenameClassNameTo": "BSGNetworkWriter",
-    //  "IsClass": true,
-    //  "MustBeGClass": true,
-    //  "HasMethods": [ "Reset", "WriteByte", "WriteBytes" ]
-    //},
-    {
-      "RenameClassNameTo": "BSGNetworkWriterExtensions",
-      "IsClass": true,
-      "MustBeGClass": true,
-      "HasMethodsStatic": [ "WriteArray", "WriteArraySegment", "WriteBool", "WriteBoolNullable" ]
-    },
-    {
-      "RenameClassNameTo": "BSGNetworkReader",
-      "IsClass": true,
-      "MustBeGClass": true,
-      "HasMethods": [ "ReadByte", "ReadBytes" ]
-    },
-    {
-      "RenameClassNameTo": "BSGNetworkReaderExtensions",
-      "IsClass": true,
-      "IsAbstract": true,
-      "MustBeGClass": true,
-      "HasMethodsStatic": [ "ReadByte", "ReadBytes", "ReadSByte", "ReadSByteNullable" ]
-    },
-    {
-      "RenameClassNameTo": "BSGNetworkConversionHelpers",
-      "IsClass": true,
-      "HasMethodsStatic": [ "ScaleByteToFloat" ]
-    },
     {
       "RenameClassNameTo": "BSGDirectionalHelpers",
       "IsClass": true,
@@ -453,6 +422,5 @@
       "HasFields": [ "localPlayer_0" ],
       "HasMethods": [ "Initialize", "ApplyVisibleState" ]
     }
-  ],
-  "AutoRemapDescriptors": true
+  ]
 }
