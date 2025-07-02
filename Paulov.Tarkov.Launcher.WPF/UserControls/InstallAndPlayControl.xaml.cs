@@ -140,11 +140,6 @@ namespace Paulov.Launcher.UserControls
             }
         }
 
-        private async void btnInstallAkiPack_Click(object sender, RoutedEventArgs e)
-        {
-            await new InstallingService().InstallAkiPack(InstallInstanceConfig.InstallLocationOffline);
-        }
-
         private async void btnDeobfuscateAssembly_Click(object sender, RoutedEventArgs e)
         {
             new InstallingService().CleanupDirectory(InstallInstanceConfig.InstallLocationOffline);
@@ -183,8 +178,6 @@ namespace Paulov.Launcher.UserControls
 
 
             await File.WriteAllTextAsync(deobfuscateLogPath, debobfuscator.LoggedStringBuilder.ToString());
-            //Deobfuscator.OnLog -= OnDeobfuscateLog;
-            //txtDeobfuscateLog.ScrollToEnd();
 
             loadingDialog.Update("", "");
 
