@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Tarkov.Deobfuscator
 {
-    public partial class AutoRemapperConfig
+    public partial class RemapperConfig
     {
         public AutoRemapType? AutomaticRemapping { get; set; }
         public AutoRemapType? EnableDefinedRemapping { get; set; }
