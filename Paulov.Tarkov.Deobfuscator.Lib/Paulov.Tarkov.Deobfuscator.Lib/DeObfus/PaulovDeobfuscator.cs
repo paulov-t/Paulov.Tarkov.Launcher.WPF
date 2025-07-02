@@ -57,14 +57,14 @@ namespace Tarkov.Deobfuscator
             }
         }
 
-        internal void LogRemap(string text, AutoRemapperConfig.AutoRemapType remapType)
+        internal void LogRemap(string text, RemapperConfig.AutoRemapType remapType)
         {
             switch (remapType)
             {
-                case AutoRemapperConfig.AutoRemapType.Remap:
+                case RemapperConfig.AutoRemapType.Remap:
                     Log($"Remapper: {text}");
                     break;
-                case AutoRemapperConfig.AutoRemapType.Test:
+                case RemapperConfig.AutoRemapType.Test:
                     Log($"Remapper: [TEST] {text}");
                     break;
             }
@@ -182,8 +182,8 @@ namespace Tarkov.Deobfuscator
             };
             foreach (var item in RemappedClassForGeneratedConfigFile)
             {
-                AutoRemapperConfig config = new();
-                config.EnableDefinedRemapping = AutoRemapperConfig.AutoRemapType.Test;
+                RemapperConfig config = new();
+                config.EnableDefinedRemapping = RemapperConfig.AutoRemapType.Test;
                 config.DefinedRemapping = item.Value.ToArray();
                 File.WriteAllText($"_{name}.{item.Key}.generated.RemapperConfig.json"
                     , JsonConvert.SerializeObject(config, jsonSerializerSettings)
@@ -450,6 +450,9 @@ namespace Tarkov.Deobfuscator
                 if (managedFile.Contains("TextMeshPro", StringComparison.OrdinalIgnoreCase))
                     continue;
 
+                if (managedFile.Contains("UnityEngine.TextRenderingModule", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 if (managedFile.Contains("UnityEngine.CoreModule", StringComparison.OrdinalIgnoreCase))
                     continue;
 
@@ -487,12 +490,52 @@ namespace Tarkov.Deobfuscator
                 return;
 
             var assemblyTypes = assemblyDefinition.MainModule.Types.ToArray();
-#if DEBUG
-            if (assemblyTypes.Any(x => x.Name == "GClass2030"))
+
+            // Remap classes by auto configuration -- must run before defined remapping
+            foreach (var fI in Directory.GetFiles(AppContext.BaseDirectory + "//DeObfus//mappings//", "*.json", SearchOption.AllDirectories).Select(x => new FileInfo(x)))
             {
-                //Debug.WriteLine("Found ActiveHealthController in Assembly");
+                if (!fI.Exists)
+                    continue;
+
+                if (fI.Extension != ".json")
+                    continue;
+
+                Log($"-Deobfuscating-Run file--------------------------------------------------------------------------------------");
+                Log($"{fI.Name}");
+                RemappedClassCurrentFile = fI.Name.Replace(".json", "");
+
+                RemapperConfig autoRemapperConfig = JsonConvert.DeserializeObject<RemapperConfig>(File.ReadAllText(fI.FullName));
+
+                if (!autoRemapperConfig.AutomaticRemapping.HasValue)
+                    continue;
+
+                switch (autoRemapperConfig.AutomaticRemapping.Value)
+                {
+                    case RemapperConfig.AutoRemapType.Remap:
+                    case RemapperConfig.AutoRemapType.Test:
+                        // If the Remapper Config is set to use Auto Configuration. Run these two passes
+                        Log("Remapping by Auto Configuration: PASS 1");
+                        RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 1);
+                        // A second pass finds unmapped GClass that use Interfaces that have been renamed
+                        Log("Remapping by Auto Configuration: PASS 2");
+                        RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 2);
+                        break;
+                    case RemapperConfig.AutoRemapType.Aki:
+                        var akiAutoResults = AkiAutoRemapper.CreateAutoMapping(assemblyDefinition);
+                        foreach (var result in akiAutoResults)
+                        {
+                            var typeToRename = assemblyDefinition.MainModule.GetType(result.Key);
+                            if (typeToRename != null)
+                                typeToRename.Name = result.Value.OrderBy(x => x.Value).First().Key;
+                            else
+                            {
+
+                            }
+                        }
+                        break;
+                }
+
             }
-#endif
 
             foreach (var fI in Directory.GetFiles(AppContext.BaseDirectory + "//DeObfus//mappings//", "*.json", SearchOption.AllDirectories).Select(x => new FileInfo(x)))
             {
@@ -506,49 +549,19 @@ namespace Tarkov.Deobfuscator
                 Log($"{fI.Name}");
                 RemappedClassCurrentFile = fI.Name.Replace(".json", "");
 
-                AutoRemapperConfig autoRemapperConfig = JsonConvert.DeserializeObject<AutoRemapperConfig>(File.ReadAllText(fI.FullName));
-
-                if (autoRemapperConfig.AutomaticRemapping.HasValue)
-                {
-                    switch (autoRemapperConfig.AutomaticRemapping.Value)
-                    {
-                        case AutoRemapperConfig.AutoRemapType.Remap:
-                        case AutoRemapperConfig.AutoRemapType.Test:
-                            // If the Remapper Config is set to use Auto Configuration. Run these two passes
-                            Log("Remapping by Auto Configuration: PASS 1");
-                            RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 1);
-                            // A second pass finds unmapped GClass that use Interfaces that have been renamed
-                            Log("Remapping by Auto Configuration: PASS 2");
-                            RemapByAutoConfiguration(assemblyDefinition, autoRemapperConfig, ref renamedClasses, pass: 2);
-                            break;
-                        case AutoRemapperConfig.AutoRemapType.Aki:
-                            var akiAutoResults = AkiAutoRemapper.CreateAutoMapping(assemblyDefinition);
-                            foreach (var result in akiAutoResults)
-                            {
-                                var typeToRename = assemblyDefinition.MainModule.GetType(result.Key);
-                                if (typeToRename != null)
-                                    typeToRename.Name = result.Value.OrderBy(x => x.Value).First().Key;
-                                else
-                                {
-
-                                }
-                            }
-                            break;
-                    }
-
-                }
+                RemapperConfig remapperConfig = JsonConvert.DeserializeObject<RemapperConfig>(File.ReadAllText(fI.FullName));
 
                 // Run the defined mapping in the configuration file
                 Log("Remapping by Defined Configuration");
-                RemapByDefinedConfiguration(assemblyTypes, autoRemapperConfig, renamedClasses).Wait();
+                RemapByDefinedConfiguration(assemblyTypes, remapperConfig, renamedClasses).Wait();
 
                 // Remapping Descriptors
-                RemapDescriptors(assemblyDefinition, autoRemapperConfig, ref renamedClasses);
+                RemapDescriptors(assemblyDefinition, remapperConfig, ref renamedClasses);
 
-                RemapByDefinedEnumConfigurations(assemblyDefinition, autoRemapperConfig);
+                RemapByDefinedEnumConfigurations(assemblyDefinition, remapperConfig);
 
-                // Remap the all types to public dependant on Config. This has to run after defined because Aki requires it to fix certain types.
-                if (autoRemapperConfig.EnableForceAllTypesPublic == true)
+                // Remap the all types to public dependant on Config. 
+                if (remapperConfig.EnableForceAllTypesPublic == true)
                     Publicizer.PublicizeClasses(assemblyDefinition);
 
                 FixExplicitStructs(assemblyDefinition);
@@ -591,11 +604,71 @@ namespace Tarkov.Deobfuscator
                     FixExplicitStruct(nestedType);
                 }
             }
-            // remove explicit
+
+            //if (t is { IsValueType: true, IsSequentialLayout: true })
+            //{
+            //    var offset = 0;
+            //    foreach (var f in t.Fields)
+            //    {
+            //        f.Offset = offset;
+
+            //        var fieldTypeDefinition = f.FieldType.Resolve();
+            //        if (fieldTypeDefinition != null)
+            //        {
+            //            var createdOffset = CreateOffsetFromDelcaredType(fieldTypeDefinition);
+            //            offset += createdOffset.HasValue ? createdOffset.Value : 0;
+            //        }
+            //        else
+            //        {
+            //            offset += 1;
+            //        }
+            //    }
+            //    //t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
+            //    //t.Attributes |= ~Mono.Cecil.TypeAttributes.SequentialLayout;
+            //    //if (t.IsNested)
+            //    //    t.Attributes = Mono.Cecil.TypeAttributes.NestedPublic & Mono.Cecil.TypeAttributes.SequentialLayout;
+            //    //else
+            //    //    t.Attributes = Mono.Cecil.TypeAttributes.Public & Mono.Cecil.TypeAttributes.SequentialLayout;
+
+            //}
+
             if (t is { IsValueType: true, IsExplicitLayout: true })
             {
+                var wasNested = t.IsNested;
+                var wasPublic = t.IsPublic;
+#if DEBUG
+                if (t.Name == "GStruct44")
+                {
+
+                }
+#endif
+
+                //var offset = 0;
+                //foreach (var f in t.Fields)
+                //{
+                //    f.Offset = offset;
+
+                //    var fieldTypeDefinition = f.FieldType.Resolve();
+                //    if (fieldTypeDefinition != null)
+                //    {
+                //        var createdOffset = CreateOffsetFromDelcaredType(fieldTypeDefinition);
+                //        offset += createdOffset.HasValue ? createdOffset.Value : 0;
+                //    }
+                //    else
+                //    {
+                //        offset += 1;
+                //    }
+                //}
+                foreach (var f in t.Fields)
+                {
+                    f.Offset = -1;
+                }
                 t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
-                //t.Attributes |= ~Mono.Cecil.TypeAttributes.SequentialLayout;
+                //t.Attributes &= Mono.Cecil.TypeAttributes.SequentialLayout;
+                if (wasNested)
+                    t.Attributes = Mono.Cecil.TypeAttributes.NestedPublic | Mono.Cecil.TypeAttributes.SequentialLayout;
+                //else
+                //    t.Attributes = Mono.Cecil.TypeAttributes.Public & Mono.Cecil.TypeAttributes.SequentialLayout;
             }
 
             // remove interface on structs...
@@ -608,7 +681,71 @@ namespace Tarkov.Deobfuscator
 
         }
 
-        private void RemapDescriptors(AssemblyDefinition assemblyDefinition, AutoRemapperConfig autoRemapperConfig, ref HashSet<string> renamedClasses)
+        private static int? CreateOffsetFromDelcaredType(TypeDefinition type)
+        {
+            switch (type.FullName)
+            {
+                case "System.Boolean":
+                case "System.Byte":
+                    return 1;
+                case "System.Short":
+                case "System.UShort":
+                    return 2;
+                case "System.Int32":
+                case "System.UInt32":
+                case "System.Single":
+                case "System.Float":
+                    return 4;
+                case "System.String":
+                    return 8;
+                default:
+                    {
+                        if (type.HasFields)
+                        {
+                            var innerOffsets = 0;
+                            foreach (var f in type.Fields)
+                            {
+                                try
+                                {
+                                    var fieldTypeDefinition = f.FieldType;
+                                    var innerOffsetCreated = CreateOffsetFromDelcaredType(fieldTypeDefinition);
+                                    innerOffsets += innerOffsetCreated ?? 8;
+                                }
+                                catch
+                                {
+
+                                }
+                            }
+                            return innerOffsets;
+                        }
+                        return null;
+                    }
+            }
+        }
+
+        private static int? CreateOffsetFromDelcaredType(TypeReference type)
+        {
+            switch (type.FullName)
+            {
+                case "System.Boolean":
+                case "System.Byte":
+                    return 1;
+                case "System.Short":
+                case "System.UShort":
+                    return 2;
+                case "System.Int32":
+                case "System.UInt32":
+                case "System.Single":
+                case "System.Float":
+                    return 4;
+                case "System.String":
+                    return 8;
+                default:
+                    return 8;
+            }
+        }
+
+        private void RemapDescriptors(AssemblyDefinition assemblyDefinition, RemapperConfig autoRemapperConfig, ref HashSet<string> renamedClasses)
         {
             // ------------------------------------------------
             // Auto rename descriptors
@@ -650,7 +787,7 @@ namespace Tarkov.Deobfuscator
         /// </summary>
         /// <param name="assembly"></param>
         /// <param name="config"></param>
-        private void RemapByDefinedEnumConfigurations(AssemblyDefinition assembly, AutoRemapperConfig config)
+        private void RemapByDefinedEnumConfigurations(AssemblyDefinition assembly, RemapperConfig config)
         {
             if (config.EnumAdditions == null || config.EnumAdditions.Count == 0)
                 return;
@@ -864,14 +1001,9 @@ namespace Tarkov.Deobfuscator
         //    }
         //}
 
-        private void RemapAutoDiscoverAndCountType(TypeDefinition t, Dictionary<string, int> gclassToNameCounts, TypeDefinition[] allTypes)
+        private void RemapAutoDiscoverAndCountType(TypeDefinition t, Dictionary<DiscoverAutoRemapStructure, int> gclassToNameCounts)
         {
-#if DEBUG
-            if (t.Name == "GInterface147")
-            {
 
-            }
-#endif
             // --------------------------------------------------------
             // Renaming by the classes being in methods
             RemapAutoDiscoverAndCountByMethodParameters(ref gclassToNameCounts, t);
@@ -880,17 +1012,17 @@ namespace Tarkov.Deobfuscator
             // Renaming by the classes being used as Members/Properties/Fields in other classes
             RemapAutoDiscoverAndCountByProperties(ref gclassToNameCounts, t);
 
-            RemapAutoDiscoverAndCountByNameMethod(ref gclassToNameCounts, t);
+            //RemapAutoDiscoverAndCountByNameMethod(ref gclassToNameCounts, t);
 
-            RemapAutoDiscoverAndCountByReturnParameters(ref gclassToNameCounts, t, allTypes);
+            //RemapAutoDiscoverAndCountByReturnParameters(ref gclassToNameCounts, t, allTypes);
 
-            if (t.HasNestedTypes)
-            {
-                foreach (var nestedType in t.NestedTypes)
-                {
-                    RemapAutoDiscoverAndCountType(nestedType, gclassToNameCounts, allTypes);
-                }
-            }
+            //if (t.HasNestedTypes)
+            //{
+            //    foreach (var nestedType in t.NestedTypes)
+            //    {
+            //        RemapAutoDiscoverAndCountType(nestedType, gclassToNameCounts, allTypes);
+            //    }
+            //}
         }
 
         /// <summary>
@@ -900,11 +1032,11 @@ namespace Tarkov.Deobfuscator
         /// <param name="autoRemapperConfig"></param>
         private void RemapByAutoConfiguration(
             AssemblyDefinition assemblyDefinition
-            , AutoRemapperConfig autoRemapperConfig
+            , RemapperConfig autoRemapperConfig
             , ref HashSet<string> renamedClasses
             , int pass = 1)
         {
-            if (!autoRemapperConfig.AutomaticRemapping.HasValue || autoRemapperConfig.AutomaticRemapping.Value == AutoRemapperConfig.AutoRemapType.None)
+            if (!autoRemapperConfig.AutomaticRemapping.HasValue || autoRemapperConfig.AutomaticRemapping.Value == RemapperConfig.AutoRemapType.None)
                 return;
 
             Log("Remapping by Auto Configuration");
@@ -924,12 +1056,14 @@ namespace Tarkov.Deobfuscator
                 .Where(x =>
                 x.Name.StartsWith("GClass")
                 || x.Name.StartsWith("GStruct")
-                || x.Name.StartsWith("Class")
-                || x.Name.StartsWith("GInterface"))
+                //|| x.Name.StartsWith("Class")
+                || x.Name.StartsWith("GInterface")
+                || x.Name.StartsWith("GPacket")
+                )
                 .OrderBy(x => x.Name)
                 .ToArray();
 
-            var gclassToNameCounts = new Dictionary<string, int>();
+            var gclassToNameCounts = new Dictionary<DiscoverAutoRemapStructure, int>();
 
             if (pass == 1)
             {
@@ -937,16 +1071,18 @@ namespace Tarkov.Deobfuscator
                 swDiscoveryPass1.Start();
                 foreach (var t in gclasses)
                 {
-                    RemapAutoDiscoverAndCountType(t, gclassToNameCounts, allTypes);
+                    RemapAutoDiscoverAndCountType(t, gclassToNameCounts);
                 }
                 Log($"{nameof(RemapByAutoConfiguration)}:TimeTaken:Pass1:{swDiscoveryPass1.Elapsed}");
             }
 
-            foreach (var t in gclasses)
-            //foreach (var t in allTypes)
+            if (pass > 1)
             {
-                RemapAutoDiscoverAndCountByBaseType(ref gclassToNameCounts, t);
-                RemapAutoDiscoverAndCountByInterfaces(ref gclassToNameCounts, t);
+                //foreach (var t in gclasses)
+                //{
+                //    RemapAutoDiscoverAndCountByBaseType(ref gclassToNameCounts, t);
+                //    RemapAutoDiscoverAndCountByInterfaces(ref gclassToNameCounts, t);
+                //}
             }
 
             var autoRemappedClassCount = 0;
@@ -972,7 +1108,7 @@ namespace Tarkov.Deobfuscator
                     var desiredName = t.Name + "Sub" + indexOfControllerNest++;
                     renamedClasses.Add(desiredName);
 
-                    if (autoRemapperConfig.AutomaticRemapping.Value == AutoRemapperConfig.AutoRemapType.Remap)
+                    if (autoRemapperConfig.AutomaticRemapping.Value == RemapperConfig.AutoRemapType.Remap)
                     {
                         nc.Name = desiredName;
                         LogRemap($"Auto Remap {oldClassName} to {desiredName}", autoRemapperConfig.AutomaticRemapping.Value);
@@ -1022,24 +1158,24 @@ namespace Tarkov.Deobfuscator
         }
 
         private void RenameClassesByScore
-            (
+        (
             AssemblyDefinition assemblyDefinition
-            , ref Dictionary<string, int> gclassToNameCounts
+            , ref Dictionary<DiscoverAutoRemapStructure, int> gclassToNameCounts
             , ref HashSet<string> renamedClasses
-            , AutoRemapperConfig autoRemapperConfig,
+            , RemapperConfig autoRemapperConfig,
 TypeDefinition[] allTypes)
         {
             var orderedGClassCounts = gclassToNameCounts
             .Where(x => x.Value > 0)
-            .Where(x => !x.Key.Contains("_"))
-            .Where(x => !x.Key.Contains("("))
-            .Where(x => !x.Key.Contains(")"))
-            .Where(x => !x.Key.Contains("<"))
-            .Where(x => !x.Key.Contains(".Value", StringComparison.OrdinalIgnoreCase))
-            .Where(x => !x.Key.Contains(".Attribute", StringComparison.OrdinalIgnoreCase))
-            .Where(x => !x.Key.Contains(".Instance", StringComparison.OrdinalIgnoreCase))
-            .Where(x => !x.Key.Contains(".Default", StringComparison.OrdinalIgnoreCase))
-            .Where(x => !x.Key.Contains(".Current", StringComparison.OrdinalIgnoreCase))
+            //.Where(x => !x.Key.Contains("_"))
+            //.Where(x => !x.Key.Contains("("))
+            //.Where(x => !x.Key.Contains(")"))
+            //.Where(x => !x.Key.Contains("<"))
+            //.Where(x => !x.Key.Contains(".Value", StringComparison.OrdinalIgnoreCase))
+            //.Where(x => !x.Key.Contains(".Attribute", StringComparison.OrdinalIgnoreCase))
+            //.Where(x => !x.Key.Contains(".Instance", StringComparison.OrdinalIgnoreCase))
+            //.Where(x => !x.Key.Contains(".Default", StringComparison.OrdinalIgnoreCase))
+            //.Where(x => !x.Key.Contains(".Current", StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(x => x.Value)
             //.ThenByDescending(x => x.Key.Length)
             .ToArray();
@@ -1047,9 +1183,8 @@ TypeDefinition[] allTypes)
             var usedNamesCount = new Dictionary<string, int>();
             foreach (var g in orderedGClassCounts)
             {
-                var keySplit = g.Key.Split('.');
-                var className = keySplit[0];
-                var classNameNew = keySplit[1];
+                var className = g.Key.OriginalName;
+                var classNameNew = g.Key.NewName;
                 var value = g.Value;
 
                 if (autoRemapperConfig.AutoRemapTypeExcemptions != null
@@ -1214,9 +1349,7 @@ TypeDefinition[] allTypes)
 
                 if (renamedClasses.Add(desiredName))
                 {
-                    RemapType(autoRemapperConfig, 0, desiredName, t, false, true);
-
-                    LogRemap($"Auto Remap {oldClassName} to {desiredName}", autoRemapperConfig.AutomaticRemapping.Value);
+                    RemapType(autoRemapperConfig, 0, desiredName, t, false, true, true);
                 }
                 else
                 {
@@ -1227,7 +1360,7 @@ TypeDefinition[] allTypes)
 
         }
 
-        private void RemapAutoDiscoverAndCountByProperties(ref Dictionary<string, int> gclassToNameCounts, TypeDefinition t)
+        private void RemapAutoDiscoverAndCountByProperties(ref Dictionary<DiscoverAutoRemapStructure, int> gclassToNameCounts, TypeDefinition t)
         {
 
             PropertyDefinition[] propertyDefinitions = t.Properties.Where(p =>
@@ -1245,25 +1378,34 @@ TypeDefinition[] allTypes)
                     )
                     continue;
 
-                var n = prop.PropertyType.Name
-                    .Replace("[]", "")
-                    .Replace("`1", "")
-                    .Replace("`2", "")
-                    .Replace("`3", "")
-                    .Replace("&", "")
-                    .Replace(" ", "")
-                    + "." + char.ToUpper(prop.Name[0]) + prop.Name.Substring(1)
-                    ;
-                if (!gclassToNameCounts.ContainsKey(n))
-                    gclassToNameCounts.Add(n, 0);
+                var originalName = prop.PropertyType.Name
+                        .Replace("[]", "")
+                        .Replace("`1", "")
+                        .Replace("`2", "")
+                        .Replace("`3", "")
+                        .Replace("&", "")
+                        .Replace(" ", "");
 
-                gclassToNameCounts[n] += 1;
+                var newName = char.ToUpper(prop.Name[0]) + prop.Name.Substring(1);
+                if (newName == "Instance" || newName == "Current" || newName.Length <= 4)
+                    continue;
+
+                var structure = new DiscoverAutoRemapStructure
+                {
+                    OriginalName = originalName,
+                    NewName = newName
+                };
+
+                if (!gclassToNameCounts.ContainsKey(structure))
+                    gclassToNameCounts.Add(structure, 0);
+
+                gclassToNameCounts[structure]++;
             }
 
             RemapAutoDiscoverAndCountByFields(ref gclassToNameCounts, t);
         }
 
-        private void RemapAutoDiscoverAndCountByFields(ref Dictionary<string, int> gclassToNameCounts, TypeDefinition t)
+        private void RemapAutoDiscoverAndCountByFields(ref Dictionary<DiscoverAutoRemapStructure, int> gclassToNameCounts, TypeDefinition t)
         {
             foreach (var prop in t.Fields.Where(p =>
                                 p.FieldType.Name == t.Name
@@ -1276,19 +1418,28 @@ TypeDefinition[] allTypes)
                                     )
                                 ))
             {
-                var n = prop.FieldType.Name
+                var originalName = prop.FieldType.Name
                     .Replace("[]", "")
                     .Replace("`1", "")
                     .Replace("`2", "")
                     .Replace("`3", "")
                     .Replace("&", "")
-                    .Replace(" ", "")
-                    + "." + char.ToUpper(prop.Name[0]) + prop.Name.Substring(1)
-                    ;
-                if (!gclassToNameCounts.ContainsKey(n))
-                    gclassToNameCounts.Add(n, 0);
+                    .Replace(" ", "");
 
-                gclassToNameCounts[n] += 1;
+                var newName = char.ToUpper(prop.Name[0]) + prop.Name.Substring(1);
+                if (newName == "Instance" || newName == "Current" || newName.Length <= 4)
+                    continue;
+
+                var structure = new DiscoverAutoRemapStructure
+                {
+                    OriginalName = originalName,
+                    NewName = newName
+                };
+
+                if (!gclassToNameCounts.ContainsKey(structure))
+                    gclassToNameCounts.Add(structure, 0);
+
+                gclassToNameCounts[structure]++;
             }
         }
 
@@ -1325,7 +1476,7 @@ TypeDefinition[] allTypes)
             catch { }
         }
 
-        private void RemapAutoDiscoverAndCountByMethodParameters(ref Dictionary<string, int> gclassToNameCounts, TypeDefinition type)
+        private void RemapAutoDiscoverAndCountByMethodParameters(ref Dictionary<DiscoverAutoRemapStructure, int> gclassToNameCounts, TypeDefinition type)
         {
             if (!type.HasMethods)
                 return;
@@ -1354,70 +1505,26 @@ TypeDefinition[] allTypes)
                     if (parameter.ParameterType.Namespace.ToLower() == "unityengine")
                         continue;
 
-                    var n =
-                        // Key Value is Built like so. KEY.VALUE
-                        parameter.ParameterType.Name
+                    var originalName = parameter.ParameterType.Name
                         .Replace("[]", "")
                         .Replace("`1", "")
                         .Replace("`2", "")
                         .Replace("`3", "")
                         .Replace("&", "")
-                        .Replace(" ", "")
-                        + "."
-                        + char.ToUpper(parameter.Name[0]) + parameter.Name.Substring(1)
-                        ;
-                    if (!gclassToNameCounts.ContainsKey(n))
-                        gclassToNameCounts.Add(n, 0);
+                        .Replace(" ", "");
 
-                    gclassToNameCounts[n]++;
+                    var newName = char.ToUpper(parameter.Name[0]) + parameter.Name.Substring(1);
+                    var structure = new DiscoverAutoRemapStructure
+                    {
+                        OriginalName = originalName,
+                        NewName = newName
+                    };
+
+                    if (!gclassToNameCounts.ContainsKey(structure))
+                        gclassToNameCounts.Add(structure, 0);
+
+                    gclassToNameCounts[structure]++;
                 }
-
-                // Iterate over each methods params generics only
-                foreach (var parameter in method.Parameters.Where(x => x.ParameterType.ContainsGenericParameter))
-                {
-                    var paramIsInterface = parameter.ParameterType.Name.Contains("GInterface");
-                    var paramIsStruct = parameter.ParameterType.Name.Contains("GStruct");
-                    var paramIsClass = parameter.ParameterType.Name.Contains("GClass");
-                    if (!paramIsClass && !paramIsInterface && !paramIsStruct)
-                        continue;
-
-                    if (parameter.ParameterType.GenericParameters.Count == 0)
-                        continue;
-
-                    if (parameter.ParameterType.GenericParameters.Count > 1)
-                        continue;
-
-                    var genParameter = parameter.ParameterType.GenericParameters[0];
-                    var genericParameterName = genParameter.DeclaringType.Name;
-
-                    if (parameter.Name.Length <= 5)
-                        continue;
-
-                    if (TypesToNotRemap.Contains(genericParameterName.ToLower()))
-                        continue;
-
-                    if (genericParameterName.ToLower() == "unityengine")
-                        continue;
-
-                    var n =
-                        // Key Value is Built like so. KEY.VALUE
-                        genericParameterName
-                        .Replace("[]", "")
-                        .Replace("`1", "")
-                        .Replace("`2", "")
-                        .Replace("`3", "")
-                        .Replace("&", "")
-                        .Replace(" ", "")
-                        + "."
-                        + char.ToUpper(parameter.Name[0]) + parameter.Name.Substring(1)
-                        ;
-                    if (!gclassToNameCounts.ContainsKey(n))
-                        gclassToNameCounts.Add(n, 0);
-
-                    gclassToNameCounts[n]++;
-                }
-
-
             }
         }
 
@@ -1607,9 +1714,9 @@ TypeDefinition[] allTypes)
             }
         }
 
-        private async Task RemapByDefinedConfiguration(TypeDefinition[] assemblyTypes, AutoRemapperConfig autoRemapperConfig, HashSet<string> renamedClasses)
+        private async Task RemapByDefinedConfiguration(TypeDefinition[] assemblyTypes, RemapperConfig autoRemapperConfig, HashSet<string> renamedClasses)
         {
-            if (!autoRemapperConfig.EnableDefinedRemapping.HasValue || autoRemapperConfig.EnableDefinedRemapping.Value == AutoRemapperConfig.AutoRemapType.None)
+            if (!autoRemapperConfig.EnableDefinedRemapping.HasValue || autoRemapperConfig.EnableDefinedRemapping.Value == RemapperConfig.AutoRemapType.None)
                 return;
 
             int countOfDefinedMappingSucceeded = 0;
@@ -1617,10 +1724,10 @@ TypeDefinition[] allTypes)
 
             var remappableTypes
                = assemblyTypes
-               .Where(x => !TypesToNotRemap.Select(y => y.ToLower()).Any(y => x.Name.ToLower().Contains(y)))
+               .Where(x => !TypesToNotRemap.Select(y => y.ToLower()).Any(y => x.Name.ToLower().Equals(y)))
+               .Where(x => !x.Name.Equals("<Module>"))
                .Where(x => !x.Namespace.StartsWith("System"))
                .Where(x => !x.Name.Contains("d__"))
-               //.Where(x => x.CustomAttributes.Count == 0)
                .OrderBy(x => x.Name)
                .ToList();
 
@@ -1679,8 +1786,23 @@ TypeDefinition[] allTypes)
 
         private List<string> RemappedTypeNamesUsed = new List<string>();
 
-        private int RemapType(AutoRemapperConfig autoRemapperConfig, int countSuccess, string remapName, TypeDefinition t, bool forceRemap = false, bool renameAbstract = false)
+        private int RemapType(RemapperConfig remapperConfig
+            , int countSuccess
+            , string remapName
+            , TypeDefinition t
+            , bool forceRemap = false
+            , bool renameAbstract = false
+            , bool isAutoRemapper = false
+            )
         {
+            if (!remapperConfig.EnableDefinedRemapping.HasValue && !remapperConfig.AutomaticRemapping.HasValue)
+                return 0;
+
+            var hasDefinedRemapping = (remapperConfig.EnableDefinedRemapping.HasValue && remapperConfig.EnableDefinedRemapping != RemapperConfig.AutoRemapType.None);
+            var hasAutoRemapping = (remapperConfig.AutomaticRemapping.HasValue && remapperConfig.AutomaticRemapping != RemapperConfig.AutoRemapType.None);
+
+            if (!hasDefinedRemapping && !hasAutoRemapping)
+                return 0;
 
             if (remapName == "MonoBehavior")
                 return countSuccess;
@@ -1725,17 +1847,36 @@ TypeDefinition[] allTypes)
                 return countSuccess;
             }
 
-            if (autoRemapperConfig.EnableDefinedRemapping.Value == AutoRemapperConfig.AutoRemapType.Remap)
+            if (hasDefinedRemapping)
             {
-                t.Name = newClassName;
-                RemappedTypeNamesUsed.Add(newClassName);
+                if (remapperConfig.EnableDefinedRemapping.Value == RemapperConfig.AutoRemapType.Remap)
+                {
+                    t.Name = newClassName;
+                    RemappedTypeNamesUsed.Add(newClassName);
 
-                Log($"Remapper: Remapped {oldFullName} to {newClassName}");
-                countSuccess++;
+                    Log($"Remapper: [REMAP] Remapped {oldFullName} to {newClassName}");
+                    countSuccess++;
+                }
+                else if (remapperConfig.EnableDefinedRemapping.Value == RemapperConfig.AutoRemapType.Test)
+                {
+                    Log($"Remapper: [TEST] Remap {oldFullName} to {newClassName}");
+                }
             }
-            else
+
+            if (hasAutoRemapping)
             {
-                Log($"Remapper: [TEST] Remap {oldFullName} to {newClassName}");
+                if (remapperConfig.AutomaticRemapping.Value == RemapperConfig.AutoRemapType.Remap)
+                {
+                    t.Name = newClassName;
+                    RemappedTypeNamesUsed.Add(newClassName);
+
+                    Log($"Remapper: [REMAP] Remapped {oldFullName} to {newClassName}");
+                    countSuccess++;
+                }
+                else if (remapperConfig.AutomaticRemapping.Value == RemapperConfig.AutoRemapType.Test)
+                {
+                    Log($"Remapper: [TEST] Remap {oldFullName} to {newClassName}");
+                }
             }
 
             AddRemappedClassForCSFile(oldFullName, newClassName, forceRemap);
@@ -1749,13 +1890,10 @@ TypeDefinition[] allTypes)
             return await Task.Run(() =>
             {
 #if DEBUG
-                if (config.RenameClassNameTo == "CompleteProfileDescriptorClass")
+                if (config.RenameClassNameTo == "RawQuestClass")
                 {
 
                 }
-
-                var completeProfileDescriptorClassType = findTypes.FirstOrDefault(x => x.Name == "GClass2030");
-                _ = completeProfileDescriptorClassType;
 #endif
 
                 List<TypeDefinition> foundDefinition = findTypes.Where(
@@ -1795,12 +1933,23 @@ TypeDefinition[] allTypes)
                     ).ToList();
 
                 // Filter Types by Methods
+                //foundDefinition = foundDefinition.Where(x
+                //        =>
+                //            (config.HasMethods == null || config.HasMethods.Length == 0
+                //                || (x.Methods.Where(x => !x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethods.Contains(y)) >= config.HasMethods.Length))
+
+                //).ToList();
+
                 foundDefinition = foundDefinition.Where(x
                         =>
                             (config.HasMethods == null || config.HasMethods.Length == 0
-                                || (x.Methods.Where(x => !x.IsStatic).Select(y => y.Name.Split('.')[y.Name.Split('.').Length - 1]).Count(y => config.HasMethods.Contains(y)) >= config.HasMethods.Length))
+                                || (x.Methods.Where(x => !x.IsStatic)
+                                .Select(method => method.Name)
+                                .Count(methodName => config.HasMethods.Contains(methodName)) >= config.HasMethods.Length))
 
-                        ).ToList();
+                ).ToList();
+
+
                 // Filter Types by Virtual Methods
                 if (config.HasMethodsVirtual != null && config.HasMethodsVirtual.Length > 0)
                 {
