@@ -663,12 +663,12 @@ namespace Tarkov.Deobfuscator
                 {
                     f.Offset = -1;
                 }
-                t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
+                //t.Attributes &= ~Mono.Cecil.TypeAttributes.ExplicitLayout;
                 //t.Attributes &= Mono.Cecil.TypeAttributes.SequentialLayout;
                 if (wasNested)
                     t.Attributes = Mono.Cecil.TypeAttributes.NestedPublic | Mono.Cecil.TypeAttributes.SequentialLayout;
-                //else
-                //    t.Attributes = Mono.Cecil.TypeAttributes.Public & Mono.Cecil.TypeAttributes.SequentialLayout;
+                else
+                    t.Attributes = Mono.Cecil.TypeAttributes.Public | Mono.Cecil.TypeAttributes.SequentialLayout;
             }
 
             // remove interface on structs...
