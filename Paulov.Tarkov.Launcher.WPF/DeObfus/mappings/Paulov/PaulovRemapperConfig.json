@@ -421,6 +421,12 @@
       "ExactDeclaredFieldCount": 1,
       "HasFields": [ "localPlayer_0" ],
       "HasMethods": [ "Initialize", "ApplyVisibleState" ]
+    },
+    {
+      "RenameClassNameTo": "IMedsController",
+      "IsInterface": true,
+      "ExactDeclaredMethodCount": 2,
+      "HasMethods": [ "Remove", "ClearQueue" ]
     }
   ]
 }
