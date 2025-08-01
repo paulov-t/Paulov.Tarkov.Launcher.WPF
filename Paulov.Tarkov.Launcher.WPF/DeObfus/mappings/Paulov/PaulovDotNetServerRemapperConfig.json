@@ -40,6 +40,13 @@
       "ExactDeclaredFieldCount": 1,
       "InheritsClass": "Attribute",
       "IsClass": true
+    },
+    {
+      "RenameClassNameTo": "FlatItem",
+      "HasFields": [ "_id", "_tpl", "parentId", "slotId", "location", "upd" ],
+      "HasMethods": [ "Clone" ],
+      "ExactDeclaredFieldCount": 6,
+      "IsClass": true
     }
   ]
 }
