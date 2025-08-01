@@ -25,7 +25,9 @@
     },
     {
       "RenameClassNameTo": "SpawnSystemClass",
-      "HasMethods": [ "Validate" ],
+      "IsClass": true,
+      "IsAbstract": false,
+      "HasMethods": [ "Validate", "Dispose", "method_0" ],
       "ExactDeclaredPropertyCount": 1
     },
     {
@@ -55,10 +57,11 @@
       "RenameClassNameTo": "ExfiltrationControllerClass",
       "HasMethods": [ "AssignScavIdToPoint" ]
     },
-    //{
-    //  "RenameClassNameTo": "GameServerClass",
-    //  "HasFields": [ "Ping" ]
-    //},
+    {
+      "RenameClassNameTo": "GameServerClass",
+      "HasFields": [ "Ping" ],
+      "ExactDeclaredFieldCount": 1
+    },
     {
       "RenameClassNameTo": "QuestItemClass",
       "HasFields": [ "parentId", "_tpl", "_id" ],
@@ -430,11 +433,6 @@
       "HasFields": [ "MainStorage" ]
     },
     {
-      "RenameClassNameTo": "InventoryControllerClass",
-      "HasEvents": [ "OnAmmoLoaded" ],
-      "HasConstructorArgs": [ "profile", "examined", "customId" ]
-    },
-    {
       "RenameClassNameTo": "BossKojaniyBrainClass",
       "HasMethods": [ "SetBossKojaniy" ]
     },
@@ -729,6 +727,23 @@
       "IsClass": true,
       "HasMethodsStatic": [ "CreateEvent", "TryGetEvents" ],
       "HasMethods": [ "ApplyEvents", "ClearEvents", "Initialize", "method_0" ]
+    },
+    {
+      "RenameClassNameTo": "CultistEventsClass",
+      "IsClass": true,
+      "HasMethods": [ "ManualUpdate", "Dispose" ],
+      "HasFields": [ "botsGroup_0" ],
+      "ExactDeclaredFieldCount": 3
+    },
+    {
+      "RenameClassNameTo": "RepairControllerClass",
+      "IsClass": true,
+      "HasMethods": [ "GetSuitableRepairersCollections" ]
+    },
+    {
+      "RenameClassNameTo": "FirstPersonCameraOperationClass",
+      "IsClass": true,
+      "HasMethods": [ "ManualFixedUpdate", "ManualLateUpdate", "SetPointOfView", "method_1" ]
     },
     // This is stuff that is not on Aki's list
     {
