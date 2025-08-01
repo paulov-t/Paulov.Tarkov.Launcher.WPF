@@ -412,6 +412,9 @@
     <None Update="DeObfus\mappings\Spt\SptRemapperConfig.Local.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="DeObfus\mappings\Unity\UnityNetworkingRemapperConfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Images\ArenaLogo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -1,0 +1,15 @@
+{
+  // "None"/"Test" - create .cs of remappings /"Remap" - do the remap to the Assembly the Automatic System of Remapping via Code
+  "AutomaticRemapping": "None",
+  // Enable/Disable the Defined Mapping list of Remapping - The defined list runs after the Automatic Remap
+  "EnableDefinedRemapping": "Remap",
+  "DefinedRemapping": [
+    //{
+    //  "RenameClassNameTo": "UnityEngine.Networking.NetworkMessage",
+    //  "HasFields": [ "Connection", "Channel", "MessageType", "buffer" ],
+    //  "HasMethods": [ "ReadMessage" ],
+    //  "ExactDeclaredMethodCount": 1,
+    //  "IsStruct": true
+    //}
+  ]
+}
