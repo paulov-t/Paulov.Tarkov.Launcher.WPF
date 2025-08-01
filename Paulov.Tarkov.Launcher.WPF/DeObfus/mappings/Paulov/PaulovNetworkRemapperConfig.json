@@ -41,6 +41,35 @@
       "RenameClassNameTo": "BSGNetworkConversionHelpers",
       "IsClass": true,
       "HasMethodsStatic": [ "ScaleByteToFloat" ]
+    },
+    {
+      "RenameClassNameTo": "BSGSerializer",
+      "IsClass": true,
+      "MustBeGClass": true,
+      "HasMethods": [ "WriteByte", "WriteBytes", "Reset", "ToArraySegment" ],
+      "HasFields": [ "MaxStringLength", "DefaultCapacity" ]
+    },
+    {
+      "RenameClassNameTo": "DissonanceServer",
+      "IsClass": true,
+      "MustBeGClass": true,
+      "HasMethods": [ "Connect", "AddClient", "Disconnect", "ReadMessages", "Update", "SendReliable", "SendUnreliable", "method_0" ],
+      "HasFields": [ "mirrorIgnoranceCommsNetwork_0", "list_0", "byte_0" ]
+    },
+    {
+      "RenameClassNameTo": "DissonanceClient",
+      "IsClass": true,
+      "MustBeGClass": true,
+      "HasMethods": [ "Connect", "Disconnect", "ReadMessages", "SendReliable", "SendUnreliable", "SendVoiceData", "method_0" ],
+      "HasFields": [ "mirrorIgnoranceCommsNetwork_0", "byte_0" ]
+    },
+    {
+      "RenameClassNameTo": "BSGNetworkListenServer",
+      "IsClass": true,
+      "MustBeGClass": true,
+      "HasMethods": [ "Listen", "Shutdown", "OnConnect", "OnData", "OnDisconnect" ],
+      "HasFields": [ "dictionary_0" ],
+      "HasFieldsStatic": [ "Default" ]
     }
   ],
   "AutoRemapDescriptors": true
