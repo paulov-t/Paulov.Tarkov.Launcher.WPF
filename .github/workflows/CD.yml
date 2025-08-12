@@ -46,9 +46,9 @@ jobs:
       with:
         draft: true
         generate_release_notes: true
+        token: ${{ secrets.PAT_KEY }}
         files: |
           Paulov.Tarkov.Launcher.zip
-        tag_name: $([System.DateTime]::Now.ToString("yyyy.MM.dd.HHmmss"))
 
     
 
