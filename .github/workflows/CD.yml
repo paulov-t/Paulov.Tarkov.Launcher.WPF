@@ -1,0 +1,63 @@
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - '.github/*'
+      - '.github/*_TEMPLATE/**'
+      - '*.md'
+    branches: [ "master" ]
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore -p:EnableWindowsTargeting=true
+
+    - name: Build
+      run: dotnet build -c Release -o bin/PublishDirectory -p:EnableWindowsTargeting=true
+      
+    - name: Publish
+      run: dotnet publish Paulov.Tarkov.Launcher.WPF/Paulov.Tarkov.Launcher.WPF.csproj -c Release -o bin/PublishDirectory -r win-x64 -p:EnableWindowsTargeting=true -p:PublishSingleFile=true --self-contained false
+
+    - name: Delete pdb
+      run: |
+        cd bin/PublishDirectory
+        ls *.pdb -Recurse | foreach {rm $_}
+        cd ..
+        cd ..
+
+    - name: Zip Artifact
+      run: |
+        cd bin/PublishDirectory
+        Get-ChildItem -Path "" -Recurse
+        $currentPath=$pwd.Path
+        Compress-Archive -Path $currentPath -DestinationPath ../../Paulov.Tarkov.Launcher.zip
+        cd ..
+        cd ..
+
+    - name: Generate Release Draft
+      uses: softprops/action-gh-release@v2
+      with:
+        draft: true
+        generate_release_notes: true
+        files: |
+          Paulov.Tarkov.Launcher.zip
+        tag_name: $([System.DateTime]::Now.ToString("yyyy.MM.dd.HHmmss"))
+
+    
+
+
+    
+      
