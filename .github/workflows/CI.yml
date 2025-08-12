@@ -5,8 +5,16 @@ name: Continuous Integration
 
 on:
   push:
+    paths-ignore:
+      - '.github/*'
+      - '.github/*_TEMPLATE/**'
+      - '*.md'
     branches: [ "master" ]
   pull_request:
+    paths-ignore:
+      - '.github/*'
+      - '.github/*_TEMPLATE/**'
+      - '*.md'
     branches: [ "master" ]
 
 jobs:
