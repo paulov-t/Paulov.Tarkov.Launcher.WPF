@@ -32,6 +32,7 @@ jobs:
       run: dotnet publish Paulov.Tarkov.Launcher.WPF/Paulov.Tarkov.Launcher.WPF.csproj -c Release -o bin/PublishDirectory -r win-x64 -p:EnableWindowsTargeting=true -p:PublishSingleFile=true --self-contained false
 
     - name: Zip Artifact
+      shell: pwsh
       run: |
         cd bin/PublishDirectory
         Get-ChildItem -Path "" -Recurse
