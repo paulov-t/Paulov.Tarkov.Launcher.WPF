@@ -56,9 +56,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
-	<Target Name="NugetPackAutoVersioning" AfterTargets="Build">
-		<Exec Command="dotnet pack --no-build --configuration $(Configuration) --output &quot;$(SolutionDir)nuget&quot;" />
-	</Target>
-
+	
 </Project>
