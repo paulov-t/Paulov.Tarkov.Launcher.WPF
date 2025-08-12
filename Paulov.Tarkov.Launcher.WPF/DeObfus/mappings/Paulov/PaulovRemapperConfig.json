@@ -24,11 +24,23 @@
       "RenameClassNameTo": "InteractionResult",
       "HasFields": [ "InteractionType" ],
       "HasConstructorArgs": [ "interactionType" ]
-
     },
     {
       "RenameClassNameTo": "GridItemAddress",
-      "HasFields": [ "Item", "ContainerName", "Grid" ],
+      "HasConstructorArgs": [ "owner" ],
+      "HasFields": [ "ContainerName" ],
+      "HasMethods": [ "AddWithoutRestrictions" ]
+    },
+    {
+      "RenameClassNameTo": "SlotItemAddress",
+      "HasConstructorArgs": [ "slot" ],
+      "HasFields": [ "Slot", "ContainerName" ],
+      "HasMethods": [ "AddWithoutRestrictions" ]
+    },
+    {
+      "RenameClassNameTo": "StackSlotItemAddress",
+      "HasConstructorArgs": [ "stackSlot" ],
+      "HasFields": [ "StackSlot", "ContainerName" ],
       "HasMethods": [ "AddWithoutRestrictions" ]
     },
     {
@@ -57,8 +69,10 @@
     },
     {
       "RenameClassNameTo": "FilterCustomizationClass",
+      "IsAbstract": false,
       "IsClass": true,
-      "HasMethods": [ "FilterCustomization" ]
+      "HasProperties": [ "AllowedParts" ],
+      "HasFields": [ "Default" ]
     },
     {
       "RenameClassNameTo": "AStatisticsManagerForPlayer",
@@ -185,8 +199,8 @@
     {
       "RenameClassNameTo": "KeyInteractionResult",
       "IsClass": true,
-      "HasFields": [ "Key", "From", "Succeed", "DiscardResult" ],
-      "HasMethods": [ "CanExecute" ]
+      "HasFields": [ "Key", "Succeed" ],
+      "HasMethods": [ "CanExecute", "Rollback" ]
     },
     {
       "RenameClassNameTo": "SOperationResult",
@@ -427,6 +441,20 @@
       "IsInterface": true,
       "ExactDeclaredMethodCount": 2,
       "HasMethods": [ "Remove", "ClearQueue" ]
+    },
+    {
+      "RenameClassNameTo": "NetworkHealthController",
+      "IsClass": true,
+      "HasProperties": [ "StaminaCoeff" ],
+      "HasConstructorArgs": [ "serializedState", "player", "inventoryController", "skillManager" ],
+      "HasMethods": [ "ApplyItem", "CancelApplyingItem", "PauseAllEffects" ]
+    },
+    {
+      "RenameClassNameTo": "PlayerHealthController",
+      "IsClass": true,
+      "HasProperties": [ "StaminaCoeff" ],
+      "HasConstructorArgs": [ "healthInfo", "player", "inventoryController", "skillManager", "aiHealth" ],
+      "HasMethods": [ "ApplyItem", "ManualEffectUpdate", "Start" ]
     }
   ]
 }
