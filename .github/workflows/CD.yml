@@ -26,7 +26,7 @@ jobs:
       run: dotnet restore -p:EnableWindowsTargeting=true
 
     - name: Build
-      run: dotnet build -c Release -o bin/PublishDirectory
+      run: dotnet build -c Release -o bin/PublishDirectory -p:EnableWindowsTargeting=true
       
     - name: Publish
       run: dotnet publish Paulov.Tarkov.Launcher.WPF/Paulov.Tarkov.Launcher.WPF.csproj -c Release -o bin/PublishDirectory -r win-x64 -p:EnableWindowsTargeting=true -p:PublishSingleFile=true --self-contained false
