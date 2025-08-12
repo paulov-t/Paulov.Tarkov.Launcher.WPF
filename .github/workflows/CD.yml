@@ -31,13 +31,6 @@ jobs:
     - name: Publish
       run: dotnet publish Paulov.Tarkov.Launcher.WPF/Paulov.Tarkov.Launcher.WPF.csproj -c Release -o bin/PublishDirectory -r win-x64 -p:EnableWindowsTargeting=true -p:PublishSingleFile=true --self-contained false
 
-    - name: Delete pdb
-      run: |
-        cd bin/PublishDirectory
-        ls *.pdb -Recurse | foreach {rm $_}
-        cd ..
-        cd ..
-
     - name: Zip Artifact
       run: |
         cd bin/PublishDirectory
