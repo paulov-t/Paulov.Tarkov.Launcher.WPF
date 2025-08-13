@@ -1851,13 +1851,24 @@ TypeDefinition[] allTypes)
             return await Task.Run(() =>
             {
 #if DEBUG
-                if (config.RenameClassNameTo == "RawQuestClass")
+                if (config.RenameClassNameTo == "BSGClientPlayerDataDispatcher")
                 {
 
                 }
 #endif
+                var allTypes = new List<TypeDefinition>();
+                allTypes.AddRange(findTypes);
 
-                List<TypeDefinition> foundDefinition = findTypes.Where(
+                foreach (var t in findTypes)
+                {
+                    if (t.HasNestedTypes)
+                    {
+                        allTypes.AddRange(t.NestedTypes);
+                    }
+                }
+
+
+                List<TypeDefinition> foundDefinition = allTypes.Where(
                    x =>
                        (
                            !config.MustBeGClass.HasValue
