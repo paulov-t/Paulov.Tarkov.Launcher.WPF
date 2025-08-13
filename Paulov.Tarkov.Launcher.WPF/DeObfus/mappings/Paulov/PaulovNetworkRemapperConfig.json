@@ -70,6 +70,20 @@
       "HasMethods": [ "Listen", "Shutdown", "OnConnect", "OnData", "OnDisconnect" ],
       "HasFields": [ "dictionary_0" ],
       "HasFieldsStatic": [ "Default" ]
+    },
+    {
+      "RenameClassNameTo": "IBSGClientPlayerDataDispatcher",
+      "IsInterface": true,
+      "HasEvents": [ "DataSentEvent" ],
+      "HasProperties": [ "BytesWritten" ],
+      "HasMethods": [ "Send", "Dispatch" ]
+    },
+    {
+      "RenameClassNameTo": "BSGClientPlayerDataDispatcher",
+      //"IsClass": true,
+      //"MustBeGClass": true,
+      "HasFields": [ "PreventDispatch" ],
+      //"HasConstructorArgs": [ "player", "sendDelegate", "sendRateFramesLimit" ]
     }
   ],
   "AutoRemapDescriptors": true
